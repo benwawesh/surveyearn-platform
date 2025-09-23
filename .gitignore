@@ -2,52 +2,48 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
+.Python
+env/
+venv/
+survey_env/
+ENV/
+env.bak/
+venv.bak/
 
 # Django
 *.log
+local_settings.py
 db.sqlite3
 db.sqlite3-journal
-media/
-staticfiles/
-
-# Environment variables
+/media/
+/static/
 .env
-.env.local
-
-# Virtual Environment
-survey_env/
-venv/
-env/
+settings_local.py
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
 # OS
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
-# Secrets
+# Temporary fix scripts (exclude from repo)
+fix_*.py
+
+# Docker
+.dockerignore
+
+# Sensitive files
 *.pem
 *.key
-secret_key.txt
-
-# Logs
-*.log
-logs/
-
-# Testing
-.coverage
-.pytest_cache/
-
-# Temporary files
-*.tmp
-*.temp
-temp/
-tmp/
-
-# Backup files
-*.bak
-*.backup
+.env.*
