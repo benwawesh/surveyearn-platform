@@ -2975,6 +2975,7 @@ def get_video_duration_from_file(video_file):
                 duration = float(data['format']['duration'])
                 return timedelta(seconds=int(duration))
     except Exception as e:
+        pass  # Or add logging: logger.error(f"Error getting video duration: {e}")
 
     return None
 
@@ -2986,9 +2987,9 @@ def get_youtube_duration(video_url):
         # For now, we'll return None and let the user set duration manually
         return None
     except Exception as e:
+        pass  # Handle any exceptions gracefully
 
     return None
-
 
 # Tutorial Management Views
 @user_passes_test(is_admin)
@@ -3054,9 +3055,6 @@ def tutorials_list(request):
         avg_quiz_score=Avg('quiz_attempts__score_percentage')
     ).order_by('-created_at')
 
-    # Add debugging
-    for tutorial in tutorials:
-
     # Filtering
     category_id = request.GET.get('category')
     if category_id:
@@ -3075,13 +3073,10 @@ def tutorials_list(request):
             Q(description__icontains=search)
         )
 
-
     # Pagination
     paginator = Paginator(tutorials, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-
-    for tutorial in page_obj:
 
     categories = TutorialCategory.objects.filter(is_active=True)
 
@@ -3095,6 +3090,7 @@ def tutorials_list(request):
     }
 
     return render(request, 'admin/tutorials_list.html', context)
+
 
 @user_passes_test(is_admin)
 def tutorial_detail(request, tutorial_id):
