@@ -1,0 +1,160 @@
+{% extends 'accounts/base.html' %}
+{% load static %}
+
+{% block title %}Available Surveys - SurveyEarn{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Page Header -->
+        <div class="mb-8">
+            <div class="sm:flex sm:items-center sm:justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">Available Surveys</h1>
+                    <p class="mt-2 text-gray-600">Complete surveys and earn money instantly</p>
+                </div>
+                <div class="mt-4 sm:mt-0">
+                    <div class="text-right">
+                        <p class="text-sm text-gray-500">Your Balance</p>
+                        <p class="text-2xl font-bold text-green-600">KSh {{ user.balance|floatformat:2 }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
+            <div class="p-6 border-b border-gray-200">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Filter Surveys</h3>
+                <form method="get" class="grid grid-cols-1 md:grid-cols-3 gap-4" id="filterForm">
+
+                    <div>
+                        <label for="reward_min" class="block text-sm font-medium text-gray-700 mb-2">Min Reward (KSh)</label>
+                        <input type="number" name="reward_min" id="reward_min" min="0" step="0.01" value="{{ request.GET.reward_min }}" placeholder="0.00" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                    </div>
+
+                    <div>
+                        <label for="sort" class="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
+                        <select name="sort" id="sort" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                            <option value="newest" {% if request.GET.sort == 'newest' %}selected{% endif %}>Newest First</option>
+                            <option value="highest_reward" {% if request.GET.sort == 'highest_reward' %}selected{% endif %}>Highest Reward</option>
+                            <option value="ending_soon" {% if request.GET.sort == 'ending_soon' %}selected{% endif %}>Ending Soon</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-end">
+                        <button type="submit" class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 font-medium">
+                            <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                            </svg>
+                            Filter
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Survey List -->
+        {% if surveys %}
+        <div class="space-y-4">
+            {% for survey in surveys %}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                <div class="flex items-center justify-between">
+                    <!-- Survey Info -->
+                    <div class="flex-1">
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">
+                            {{ survey.title }}
+                        </h3>
+                        <p class="text-gray-600 mb-3">
+                            {{ survey.description|truncatewords:20 }}
+                        </p>
+                        <div class="flex items-center space-x-4 text-sm text-gray-500">
+                            <span>{{ survey.questions.count|default:"--" }} questions</span>
+                            <span>•</span>
+                            <span>Created by {{ survey.created_by|default:"Admin" }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Reward and Action -->
+                    <div class="flex items-center space-x-6">
+                        <!-- Reward -->
+                        <div class="text-right">
+                            <p class="text-sm text-gray-500">Reward</p>
+                            <p class="text-2xl font-bold text-green-600">KSh {{ survey.payout|floatformat:2 }}</p>
+                        </div>
+
+                        <!-- Status -->
+                        <div class="text-center">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                <svg class="w-2 h-2 mr-2" fill="currentColor" viewBox="0 0 8 8">
+                                    <circle cx="4" cy="4" r="3"></circle>
+                                </svg>
+                                Active
+                            </span>
+                        </div>
+
+                        <!-- Action Button -->
+                        <div>
+                            {% if user.is_authenticated %}
+                                <a href="{% url 'surveys:survey_detail' survey.id %}"
+                                   class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
+                                    Start Survey
+                                    <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                    </svg>
+                                </a>
+                            {% else %}
+                                <button disabled class="inline-flex items-center px-6 py-3 bg-gray-300 text-gray-500 font-medium rounded-lg cursor-not-allowed">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                    </svg>
+                                    Login Required
+                                </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% else %}
+        <!-- Empty State -->
+        <div class="text-center py-12">
+            <div class="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                </svg>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No surveys available</h3>
+            <p class="text-gray-600 mb-6">Check back later for new survey opportunities.</p>
+            <a href="{% url 'accounts:dashboard' %}" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"></path>
+                </svg>
+                Back to Dashboard
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// Auto-submit filter form on change
+document.addEventListener('DOMContentLoaded', function() {
+    const filterForm = document.getElementById('filterForm');
+    if (filterForm) {
+        const selects = filterForm.querySelectorAll('select, input');
+
+        selects.forEach(select => {
+            select.addEventListener('change', function() {
+                clearTimeout(window.filterTimeout);
+                window.filterTimeout = setTimeout(() => {
+                    filterForm.submit();
+                }, 300);
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

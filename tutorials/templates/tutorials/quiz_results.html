@@ -1,0 +1,349 @@
+{% extends 'accounts/base.html' %}
+{% load tutorials_extras %}
+
+{% block title %}Quiz Results: {{ tutorial.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.results-container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.score-circle {
+    width: 120px;
+    height: 120px;
+    position: relative;
+}
+
+.score-progress {
+    transform: rotate(-90deg);
+}
+
+.result-card {
+    transition: all 0.3s ease;
+    border-left: 4px solid transparent;
+}
+
+.result-card.correct {
+    border-left-color: #10b981;
+    background-color: #f0fdf4;
+}
+
+.result-card.incorrect {
+    border-left-color: #ef4444;
+    background-color: #fef2f2;
+}
+
+.answer-option {
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin: 8px 0;
+    border: 2px solid transparent;
+}
+
+.answer-option.user-selected {
+    border-color: #3b82f6;
+    background-color: #dbeafe;
+}
+
+.answer-option.correct {
+    border-color: #10b981;
+    background-color: #dcfce7;
+}
+
+.answer-option.incorrect {
+    border-color: #ef4444;
+    background-color: #fee2e2;
+}
+
+.badge-passed {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    animation: pulse 2s infinite;
+}
+
+.badge-failed {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+.performance-bar {
+    height: 8px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #ef4444 0%, #f59e0b 50%, #10b981 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.performance-indicator {
+    position: absolute;
+    top: -2px;
+    width: 4px;
+    height: 12px;
+    background: white;
+    border: 2px solid #374151;
+    border-radius: 2px;
+    transform: translateX(-50%);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="results-container px-4">
+        <!-- Results Header -->
+        <div class="bg-white rounded-lg shadow-lg p-8 mb-8 text-center">
+            <div class="flex items-center justify-center mb-6">
+                <!-- Score Circle -->
+                <div class="score-circle mr-8">
+                    <svg class="w-full h-full score-progress">
+                        <circle cx="60" cy="60" r="50"
+                                stroke="#e5e7eb" stroke-width="8" fill="none"/>
+                        <circle cx="60" cy="60" r="50"
+                                stroke="{% if quiz_attempt.is_passed %}#10b981{% else %}#ef4444{% endif %}"
+                                stroke-width="8" fill="none"
+                                stroke-dasharray="{{ quiz_attempt.score_percentage|mul:3.14 }} 314"
+                                stroke-linecap="round"/>
+                    </svg>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold {% if quiz_attempt.is_passed %}text-green-600{% else %}text-red-600{% endif %}">
+                                {{ quiz_attempt.score_percentage|floatformat:1 }}%
+                            </div>
+                            <div class="text-sm text-gray-500">Score</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Result Info -->
+                <div class="text-left">
+                    <div class="{% if quiz_attempt.is_passed %}badge-passed{% else %}badge-failed{% endif %} text-white px-6 py-3 rounded-full inline-flex items-center mb-4">
+                        <i class="fas {% if quiz_attempt.is_passed %}fa-trophy{% else %}fa-times-circle{% endif %} mr-2"></i>
+                        <span class="font-semibold">
+                            {% if quiz_attempt.is_passed %}Quiz Passed!{% else %}Quiz Failed{% endif %}
+                        </span>
+                    </div>
+
+                    <h1 class="text-2xl font-bold text-gray-800 mb-2">{{ tutorial.title }}</h1>
+                    <p class="text-gray-600 mb-4">Attempt {{ quiz_attempt.attempt_number }} Results</p>
+
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <span class="text-gray-500">Correct Answers:</span>
+                            <span class="font-semibold ml-1">{{ quiz_attempt.correct_answers }}/{{ quiz_attempt.total_questions }}</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500">Pass Score:</span>
+                            <span class="font-semibold ml-1">{{ tutorial.quiz_passing_score|default:70 }}%</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500">Time Taken:</span>
+                            <span class="font-semibold ml-1">
+                                {% if quiz_attempt.time_taken %}
+                                    {{ quiz_attempt.time_taken|time:"i:s" }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500">Completed:</span>
+                            <span class="font-semibold ml-1">{{ quiz_attempt.completed_at|date:"M d, H:i" }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance Bar -->
+            <div class="max-w-md mx-auto mb-6">
+                <div class="flex justify-between text-xs text-gray-500 mb-2">
+                    <span>0%</span>
+                    <span>{{ tutorial.quiz_passing_score|default:70 }}% (Pass)</span>
+                    <span>100%</span>
+                </div>
+                <div class="performance-bar">
+                    <div class="performance-indicator" style="left: {{ quiz_attempt.score_percentage }}%"></div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex justify-center space-x-4">
+                {% if quiz_attempt.is_passed %}
+                    <a href="{% url 'tutorials:dashboard' %}"
+                       class="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-colors">
+                        <i class="fas fa-home mr-2"></i>Back to Tutorials
+                    </a>
+                    {% if tutorial.completion_reward|default:0 > 0 %}
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                        <div class="flex items-center text-yellow-800">
+                            <i class="fas fa-coins mr-2"></i>
+                            <span class="font-medium">KES {{ tutorial.completion_reward }} Reward Earned!</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                {% else %}
+                    {% if progress.quiz_attempts < 999999 %}
+                    <a href="{% url 'tutorials:start_quiz' tutorial.pk %}"
+                       class="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors">
+                        <i class="fas fa-redo mr-2"></i>Try Again
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'tutorials:tutorial_detail' tutorial.pk %}"
+                       class="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>Back to Tutorial
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Detailed Results -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-semibold mb-6 flex items-center">
+                <i class="fas fa-list-alt mr-2 text-blue-500"></i>
+                Detailed Results
+            </h2>
+
+            <div class="space-y-6">
+                {% for user_answer in user_answers %}
+                <div class="result-card rounded-lg p-6 {% if user_answer.is_correct %}correct{% else %}incorrect{% endif %}">
+                    <!-- Question Header -->
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex-1">
+                            <h3 class="font-semibold text-gray-800 mb-2">
+                                Question {{ forloop.counter }}: {{ user_answer.quiz_question.question }}
+                            </h3>
+                        </div>
+                        <div class="flex items-center">
+                            {% if user_answer.is_correct %}
+                                <i class="fas fa-check-circle text-green-500 text-xl"></i>
+                                <span class="ml-2 text-green-600 font-medium">Correct</span>
+                            {% else %}
+                                <i class="fas fa-times-circle text-red-500 text-xl"></i>
+                                <span class="ml-2 text-red-600 font-medium">Incorrect</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Answer Options -->
+                    <div class="space-y-2">
+                        {% for answer in user_answer.quiz_question.answers.all %}
+                        <div class="answer-option
+                                    {% if answer == user_answer.quiz_answer %}user-selected{% endif %}
+                                    {% if answer.is_correct %}correct{% endif %}
+                                    {% if answer == user_answer.quiz_answer and not answer.is_correct %}incorrect{% endif %}">
+                            <div class="flex items-center justify-between">
+                                <span class="flex-1">{{ answer.answer }}</span>
+                                <div class="flex items-center space-x-2">
+                                    {% if answer == user_answer.quiz_answer %}
+                                        <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Your Answer</span>
+                                    {% endif %}
+                                    {% if answer.is_correct %}
+                                        <i class="fas fa-check text-green-500"></i>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Explanation -->
+                    {% if user_answer.quiz_question.explanation %}
+                    <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
+                        <div class="flex items-start">
+                            <i class="fas fa-lightbulb text-blue-500 mt-1 mr-2"></i>
+                            <div class="text-blue-700 text-sm">
+                                <strong>Explanation:</strong> {{ user_answer.quiz_question.explanation }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Summary Stats -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mt-8">
+            <h2 class="text-xl font-semibold mb-4">Performance Summary</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-green-600">{{ quiz_attempt.correct_answers }}</div>
+                    <div class="text-gray-600">Correct Answers</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-red-600">{{ quiz_attempt.total_questions|sub:quiz_attempt.correct_answers }}</div>
+                    <div class="text-gray-600">Incorrect Answers</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-blue-600">{{ quiz_attempt.score_percentage|floatformat:1 }}%</div>
+                    <div class="text-gray-600">Final Score</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Animate score circle
+    const scoreCircle = document.querySelector('.score-progress circle:last-child');
+    if (scoreCircle) {
+        const finalDashArray = scoreCircle.getAttribute('stroke-dasharray');
+        scoreCircle.setAttribute('stroke-dasharray', '0 314');
+        setTimeout(() => {
+            scoreCircle.style.transition = 'stroke-dasharray 2s ease-in-out';
+            scoreCircle.setAttribute('stroke-dasharray', finalDashArray);
+        }, 500);
+    }
+
+    // Confetti animation for passed quiz
+    {% if quiz_attempt.is_passed %}
+    function createConfetti() {
+        const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57'];
+        const confettiCount = 50;
+
+        for (let i = 0; i < confettiCount; i++) {
+            const confetti = document.createElement('div');
+            confetti.className = 'confetti';
+            confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            confetti.style.left = Math.random() * 100 + 'vw';
+            confetti.style.animationDuration = Math.random() * 2 + 1 + 's';
+            confetti.style.opacity = Math.random();
+            document.body.appendChild(confetti);
+
+            setTimeout(() => {
+                confetti.remove();
+            }, 3000);
+        }
+    }
+
+    // Add confetti styles
+    const style = document.createElement('style');
+    style.textContent = `
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            z-index: 9999;
+            animation: confetti-fall linear infinite;
+        }
+        @keyframes confetti-fall {
+            0% { transform: translateY(-100vh) rotate(0deg); }
+            100% { transform: translateY(100vh) rotate(360deg); }
+        }
+    `;
+    document.head.appendChild(style);
+
+    // Trigger confetti after a delay
+    setTimeout(createConfetti, 1000);
+    {% endif %}
+});
+</script>
+{% endblock %}

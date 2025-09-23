@@ -1,0 +1,282 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Withdrawal Details - SurveyEarn</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation Header -->
+    <nav class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <a href="{% url 'accounts:dashboard' %}" class="text-2xl font-bold text-blue-600">
+                        <i class="fas fa-chart-bar mr-2"></i>SurveyEarn
+                    </a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'surveys:survey_list' %}" class="text-gray-600 hover:text-blue-600">
+                        <i class="fas fa-poll-h mr-1"></i>Surveys
+                    </a>
+                    <a href="{% url 'payments:wallet_dashboard' %}" class="text-blue-600 font-semibold">
+                        <i class="fas fa-wallet mr-1"></i>Wallet
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Breadcrumb -->
+        <div class="mb-6">
+            <nav class="flex" aria-label="Breadcrumb">
+                <ol class="flex items-center space-x-4">
+                    <li>
+                        <a href="{% url 'payments:wallet_dashboard' %}" class="text-blue-600 hover:text-blue-700">
+                            <i class="fas fa-wallet mr-1"></i>Wallet
+                        </a>
+                    </li>
+                    <li>
+                        <div class="flex items-center">
+                            <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                            <span class="text-gray-500">Withdrawal Details</span>
+                        </div>
+                    </li>
+                </ol>
+            </nav>
+        </div>
+
+        <!-- Page Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Withdrawal Request</h1>
+            <p class="text-gray-600 mt-2">Request ID: {{ withdrawal.short_id }}</p>
+        </div>
+
+        <!-- Messages -->
+        {% if messages %}
+            <div class="mb-6">
+                {% for message in messages %}
+                    <div class="p-4 rounded-lg {% if message.tags == 'success' %}bg-green-50 border border-green-200 text-green-800{% elif message.tags == 'error' %}bg-red-50 border border-red-200 text-red-800{% elif message.tags == 'warning' %}bg-yellow-50 border border-yellow-200 text-yellow-800{% else %}bg-blue-50 border border-blue-200 text-blue-800{% endif %} mb-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            {{ message }}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- Status Card -->
+        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-semibold text-gray-900 mb-2">Status</h2>
+                    <div class="flex items-center">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                        {% if withdrawal.status == 'pending' %}bg-yellow-100 text-yellow-800
+                        {% elif withdrawal.status == 'approved' %}bg-blue-100 text-blue-800
+                        {% elif withdrawal.status == 'processing' %}bg-purple-100 text-purple-800
+                        {% elif withdrawal.status == 'completed' %}bg-green-100 text-green-800
+                        {% elif withdrawal.status == 'rejected' %}bg-red-100 text-red-800
+                        {% elif withdrawal.status == 'failed' %}bg-red-100 text-red-800
+                        {% elif withdrawal.status == 'cancelled' %}bg-gray-100 text-gray-800
+                        {% endif %}">
+                            <i class="fas
+                            {% if withdrawal.status == 'pending' %}fa-clock
+                            {% elif withdrawal.status == 'approved' %}fa-check
+                            {% elif withdrawal.status == 'processing' %}fa-spinner
+                            {% elif withdrawal.status == 'completed' %}fa-check-circle
+                            {% elif withdrawal.status == 'rejected' %}fa-times-circle
+                            {% elif withdrawal.status == 'failed' %}fa-exclamation-triangle
+                            {% elif withdrawal.status == 'cancelled' %}fa-ban
+                            {% endif %} mr-1"></i>
+                            {{ withdrawal.get_status_display }}
+                        </span>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm text-gray-500">Requested</p>
+                    <p class="text-lg font-medium">{{ withdrawal.created_at|date:"M d, Y H:i" }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Withdrawal Details -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Amount Details -->
+            <div class="bg-white rounded-xl shadow-sm">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900">Amount Details</h3>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">Withdrawal Amount</span>
+                        <span class="font-semibold text-lg">KSh {{ withdrawal.amount|floatformat:2 }}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">Processing Fee ({{ withdrawal.withdrawal_fee|floatformat:2 }} KSh)</span>
+                        <span class="font-medium text-red-600">-KSh {{ withdrawal.withdrawal_fee|floatformat:2 }}</span>
+                    </div>
+                    <div class="border-t pt-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-900 font-medium">You Will Receive</span>
+                            <span class="font-bold text-xl text-green-600">KSh {{ withdrawal.net_amount|floatformat:2 }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Method -->
+            <div class="bg-white rounded-xl shadow-sm">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900">Payment Method</h3>
+                </div>
+                <div class="p-6">
+                    <div class="flex items-center mb-4">
+                        <div class="p-2 rounded-full
+                        {% if withdrawal.payment_method == 'mpesa' %}bg-green-100
+                        {% elif withdrawal.payment_method == 'bank_transfer' %}bg-blue-100
+                        {% elif withdrawal.payment_method == 'paypal' %}bg-blue-100
+                        {% endif %}">
+                            <i class="fas
+                            {% if withdrawal.payment_method == 'mpesa' %}fa-mobile-alt text-green-600
+                            {% elif withdrawal.payment_method == 'bank_transfer' %}fa-university text-blue-600
+                            {% elif withdrawal.payment_method == 'paypal' %}fa-paypal text-blue-600
+                            {% endif %}"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="font-medium text-gray-900">{{ withdrawal.get_payment_method_display }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Payment Details -->
+                    {% if withdrawal.payment_method == 'mpesa' %}
+                        <div class="space-y-2">
+                            <p class="text-sm text-gray-600">Phone Number</p>
+                            <p class="font-medium">{{ withdrawal.mpesa_phone_number }}</p>
+                        </div>
+                    {% elif withdrawal.payment_method == 'bank_transfer' %}
+                        <div class="space-y-2">
+                            <div>
+                                <p class="text-sm text-gray-600">Bank Name</p>
+                                <p class="font-medium">{{ withdrawal.bank_name }}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Account Number</p>
+                                <p class="font-medium">{{ withdrawal.account_number }}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Account Name</p>
+                                <p class="font-medium">{{ withdrawal.account_name }}</p>
+                            </div>
+                        </div>
+                    {% elif withdrawal.payment_method == 'paypal' %}
+                        <div class="space-y-2">
+                            <p class="text-sm text-gray-600">PayPal Email</p>
+                            <p class="font-medium">{{ withdrawal.paypal_email }}</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Timeline -->
+        <div class="bg-white rounded-xl shadow-sm mt-8">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">Status Timeline</h3>
+            </div>
+            <div class="p-6">
+                <div class="flow-root">
+                    <ul class="space-y-6">
+                        <!-- Created -->
+                        <li class="relative flex items-start">
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center">
+                                    <div class="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
+                                        <i class="fas fa-plus text-green-600"></i>
+                                    </div>
+                                    <div class="ml-4">
+                                        <p class="font-medium text-gray-900">Withdrawal Request Created</p>
+                                        <p class="text-sm text-gray-500">{{ withdrawal.created_at|date:"M d, Y H:i" }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+
+                        <!-- Current Status -->
+                        {% if withdrawal.status != 'pending' %}
+                        <li class="relative flex items-start">
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center">
+                                    <div class="flex h-10 w-10 items-center justify-center rounded-full
+                                    {% if withdrawal.status == 'approved' or withdrawal.status == 'processing' or withdrawal.status == 'completed' %}bg-blue-100
+                                    {% elif withdrawal.status == 'rejected' or withdrawal.status == 'failed' %}bg-red-100
+                                    {% elif withdrawal.status == 'cancelled' %}bg-gray-100
+                                    {% endif %}">
+                                        <i class="fas
+                                        {% if withdrawal.status == 'approved' %}fa-check text-blue-600
+                                        {% elif withdrawal.status == 'processing' %}fa-spinner text-blue-600
+                                        {% elif withdrawal.status == 'completed' %}fa-check-circle text-green-600
+                                        {% elif withdrawal.status == 'rejected' %}fa-times-circle text-red-600
+                                        {% elif withdrawal.status == 'failed' %}fa-exclamation-triangle text-red-600
+                                        {% elif withdrawal.status == 'cancelled' %}fa-ban text-gray-600
+                                        {% endif %}"></i>
+                                    </div>
+                                    <div class="ml-4">
+                                        <p class="font-medium text-gray-900">{{ withdrawal.get_status_display }}</p>
+                                        {% if withdrawal.processed_at %}
+                                            <p class="text-sm text-gray-500">{{ withdrawal.processed_at|date:"M d, Y H:i" }}</p>
+                                        {% endif %}
+                                        {% if withdrawal.admin_notes %}
+                                            <p class="text-sm text-gray-600 mt-1">{{ withdrawal.admin_notes }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="mt-8 flex flex-col sm:flex-row gap-4">
+            {% if withdrawal.status == 'pending' %}
+                <a href="{% url 'payments:cancel_withdrawal' withdrawal.id %}"
+                   class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 text-center">
+                    <i class="fas fa-times mr-2"></i>Cancel Request
+                </a>
+            {% endif %}
+
+            <a href="{% url 'payments:wallet_dashboard' %}"
+               class="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-300 text-center">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Wallet
+            </a>
+
+            <a href="{% url 'payments:withdrawal_status' %}"
+               class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 text-center">
+                <i class="fas fa-history mr-2"></i>View All Withdrawals
+            </a>
+        </div>
+
+        <!-- Support Information -->
+        <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <h3 class="text-blue-900 font-semibold mb-3">
+                <i class="fas fa-question-circle mr-2"></i>Need Help?
+            </h3>
+            <p class="text-blue-800 text-sm mb-3">
+                If you have questions about your withdrawal or need assistance, please contact our support team.
+            </p>
+            <div class="text-sm text-blue-700">
+                <p><strong>Email:</strong> support@surveyearn.com</p>
+                <p><strong>Response Time:</strong> Within 24 hours</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

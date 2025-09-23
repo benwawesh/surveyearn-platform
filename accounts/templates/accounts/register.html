@@ -1,0 +1,430 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}Register for SurveyEarn{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+        <!-- Header -->
+        <div class="text-center">
+            <div class="mx-auto h-12 w-12 bg-blue-600 rounded-lg flex items-center justify-center">
+                <svg class="h-8 w-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <h2 class="mt-6 text-3xl font-bold text-gray-900">Join SurveyEarn</h2>
+            <p class="mt-2 text-sm text-gray-600">
+                Pay once, access premium surveys forever
+            </p>
+            <!-- Registration Fee Display -->
+            <div class="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div class="flex items-center justify-center">
+                    <svg class="h-5 w-5 text-blue-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z"></path>
+                    </svg>
+                    <span class="text-lg font-semibold text-blue-800">Registration Fee: KSh {{ registration_fee }}</span>
+                </div>
+                <p class="text-sm text-blue-600 mt-1">One-time payment via M-Pesa</p>
+            </div>
+        </div>
+
+        <!-- Registration Form -->
+        <form class="mt-8 space-y-6" method="post">
+            {% csrf_token %}
+
+            <div class="space-y-4">
+                <!-- Username Field -->
+                <div>
+                    <label for="{{ form.username.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        Username *
+                    </label>
+                    {{ form.username }}
+                    {% if form.username.help_text %}
+                        <p class="mt-1 text-sm text-gray-500">{{ form.username.help_text }}</p>
+                    {% endif %}
+                    {% if form.username.errors %}
+                        <div class="mt-1 text-sm text-red-600">
+                            {% for error in form.username.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Email Field -->
+                <div>
+                    <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        Email Address *
+                    </label>
+                    {{ form.email }}
+                    {% if form.email.errors %}
+                        <div class="mt-1 text-sm text-red-600">
+                            {% for error in form.email.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Phone Number Field -->
+                <div>
+                    <label for="{{ form.phone_number.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        M-Pesa Phone Number *
+                    </label>
+                    {{ form.phone_number }}
+                    {% if form.phone_number.help_text %}
+                        <p class="mt-1 text-sm text-gray-500">{{ form.phone_number.help_text }}</p>
+                    {% endif %}
+                    {% if form.phone_number.errors %}
+                        <div class="mt-1 text-sm text-red-600">
+                            {% for error in form.phone_number.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Country Field -->
+                <div>
+                    <label for="{{ form.country.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        Country *
+                    </label>
+                    {{ form.country }}
+                    {% if form.country.errors %}
+                        <div class="mt-1 text-sm text-red-600">
+                            {% for error in form.country.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Registration Fee Display (Read-only) -->
+                <div>
+                    <label for="{{ form.registration_fee.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        {{ form.registration_fee.label }}
+                    </label>
+                    {{ form.registration_fee }}
+                    {% if form.registration_fee.help_text %}
+                        <p class="mt-1 text-sm text-gray-500">{{ form.registration_fee.help_text }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Password Fields -->
+                <div>
+                    <label for="{{ form.password1.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        Password *
+                    </label>
+                    {{ form.password1 }}
+                    {% if form.password1.help_text %}
+                        <p class="mt-1 text-sm text-gray-500">{{ form.password1.help_text }}</p>
+                    {% endif %}
+                    {% if form.password1.errors %}
+                        <div class="mt-1 text-sm text-red-600">
+                            {% for error in form.password1.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="{{ form.password2.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        Confirm Password *
+                    </label>
+                    {{ form.password2 }}
+                    {% if form.password2.errors %}
+                        <div class="mt-1 text-sm text-red-600">
+                            {% for error in form.password2.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Terms Acceptance -->
+                <div class="flex items-center">
+                    {{ form.terms_accepted }}
+                    <label for="{{ form.terms_accepted.id_for_label }}" class="ml-2 block text-sm text-gray-700">
+                        {{ form.terms_accepted.label }} *
+                    </label>
+                </div>
+                {% if form.terms_accepted.errors %}
+                    <div class="text-sm text-red-600">
+                        {% for error in form.terms_accepted.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Form Errors -->
+            {% if form.non_field_errors %}
+                <div class="bg-red-50 border border-red-200 rounded-md p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            {% for error in form.non_field_errors %}
+                                <p class="text-sm text-red-700">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Submit Button -->
+            <div>
+                <button type="submit"
+                        class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                    <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+                        <svg class="h-5 w-5 text-blue-500 group-hover:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z"></path>
+                        </svg>
+                    </span>
+                    Register & Pay KSh {{ registration_fee }}
+                </button>
+            </div>
+
+            <!-- Sign In Link -->
+            <div class="text-center">
+                <p class="text-sm text-gray-600">
+                    Already have an account?
+                    <a href="{% url 'accounts:login' %}" class="font-medium text-blue-600 hover:text-blue-500">
+                        Sign in here
+                    </a>
+                </p>
+            </div>
+        </form>
+
+        <!-- Payment Process Section -->
+        <div class="mt-8 pt-8 border-t border-gray-200">
+            <h3 class="text-lg font-medium text-gray-900 text-center mb-6">How Registration Works</h3>
+
+            <div class="space-y-4">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                        <div class="flex items-center justify-center h-8 w-8 rounded-full bg-blue-100 text-blue-600 text-sm font-bold">
+                            1
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <h4 class="text-sm font-medium text-gray-900">Fill Registration Form</h4>
+                        <p class="text-sm text-gray-600">Enter your details including M-Pesa phone number.</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                        <div class="flex items-center justify-center h-8 w-8 rounded-full bg-blue-100 text-blue-600 text-sm font-bold">
+                            2
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <h4 class="text-sm font-medium text-gray-900">M-Pesa Payment Request</h4>
+                        <p class="text-sm text-gray-600">Receive STK push on your phone to pay KSh {{ registration_fee }}.</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                        <div class="flex items-center justify-center h-8 w-8 rounded-full bg-blue-100 text-blue-600 text-sm font-bold">
+                            3
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <h4 class="text-sm font-medium text-gray-900">Account Activation</h4>
+                        <p class="text-sm text-gray-600">Account activated instantly after successful payment.</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                        <div class="flex items-center justify-center h-8 w-8 rounded-full bg-blue-100 text-blue-600 text-sm font-bold">
+                            4
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <h4 class="text-sm font-medium text-gray-900">Start Earning</h4>
+                        <p class="text-sm text-gray-600">Access premium surveys and start earning immediately!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Value Proposition -->
+        <div class="mt-8 pt-8 border-t border-gray-200">
+            <h3 class="text-lg font-medium text-gray-900 text-center mb-6">Why Pay for Registration?</h3>
+
+            <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                <div class="flex items-start">
+                    <svg class="h-5 w-5 text-green-600 mt-0.5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                    <div>
+                        <h4 class="text-sm font-medium text-green-800">Premium Survey Access</h4>
+                        <p class="text-sm text-green-700">Get access to high-paying surveys worth KSh 50-200 each</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                <div class="flex items-start">
+                    <svg class="h-5 w-5 text-green-600 mt-0.5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                    <div>
+                        <h4 class="text-sm font-medium text-green-800">Quality Guarantee</h4>
+                        <p class="text-sm text-green-700">All surveys verified and guaranteed to pay on completion</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div class="flex items-start">
+                    <svg class="h-5 w-5 text-green-600 mt-0.5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                    <div>
+                        <h4 class="text-sm font-medium text-green-800">Serious Members Only</h4>
+                        <p class="text-sm text-green-700">No spam accounts, ensuring quality surveys for everyone</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 text-center">
+                <p class="text-sm text-gray-600">
+                    <strong>Break-even calculation:</strong> Complete just 10 surveys to recover your registration fee!
+                </p>
+            </div>
+        </div>
+
+        <!-- Trust Indicators -->
+        <div class="mt-8 pt-8 border-t border-gray-200">
+            <div class="grid grid-cols-2 gap-4">
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-blue-600">500+</div>
+                    <div class="text-sm text-gray-600">Paid Members</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-blue-600">KSh 50K+</div>
+                    <div class="text-sm text-gray-600">Paid Out</div>
+                </div>
+            </div>
+
+            <div class="mt-6 flex items-center justify-center space-x-4 text-sm text-gray-500">
+                <div class="flex items-center">
+                    <svg class="h-4 w-4 text-green-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
+                    </svg>
+                    M-Pesa Secure
+                </div>
+                <div class="flex items-center">
+                    <svg class="h-4 w-4 text-green-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                    Verified Platform
+                </div>
+                <div class="flex items-center">
+                    <svg class="h-4 w-4 text-green-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path>
+                    </svg>
+                    Instant Payouts
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading overlay for form submission -->
+<div id="loadingOverlay" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-8 max-w-sm w-full mx-4">
+        <div class="text-center">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Processing Registration</h3>
+            <p class="text-sm text-gray-600">Initiating M-Pesa payment request...</p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const submitButton = form.querySelector('button[type="submit"]');
+
+    // Show loading overlay on form submission
+    form.addEventListener('submit', function(e) {
+        if (form.checkValidity()) {
+            loadingOverlay.classList.remove('hidden');
+            submitButton.disabled = true;
+            submitButton.innerHTML = `
+                <span class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
+                Processing Payment...
+            `;
+        }
+    });
+
+    // Phone number formatting
+    const phoneInput = document.getElementById('{{ form.phone_number.id_for_label }}');
+    if (phoneInput) {
+        phoneInput.addEventListener('input', function() {
+            let value = phoneInput.value.replace(/\D/g, '');
+
+            if (value.startsWith('254')) {
+                value = '+' + value;
+            } else if (value.startsWith('07') || value.startsWith('01')) {
+                value = '+254' + value.substring(1);
+            } else if (value.startsWith('7') || value.startsWith('1')) {
+                value = '+254' + value;
+            }
+
+            phoneInput.value = value;
+            validatePhoneNumber(value);
+        });
+    }
+
+    // Real-time validation functions (reuse from your existing code)
+    function validatePhoneNumber(phone) {
+        const phoneRegex = /^\+254[17]\d{8}$/;
+        const phoneInput = document.getElementById('{{ form.phone_number.id_for_label }}');
+
+        if (phone.length < 10) return;
+
+        if (!phoneRegex.test(phone)) {
+            showValidationMessage(phoneInput, 'Please enter a valid Kenyan phone number (+254XXXXXXXXX)', 'error');
+        } else {
+            showValidationMessage(phoneInput, 'Phone number is valid for M-Pesa payments', 'success');
+        }
+    }
+
+    function showValidationMessage(input, message, type) {
+        const existingMessage = input.parentElement.querySelector('.validation-message');
+        if (existingMessage) {
+            existingMessage.remove();
+        }
+
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `validation-message mt-1 text-sm flex items-center ${
+            type === 'success' ? 'text-green-600' : 'text-red-600'
+        }`;
+
+        const icon = document.createElement('span');
+        icon.className = 'inline-block w-4 h-4 mr-1';
+        icon.innerHTML = type === 'success' ?
+            '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>' :
+            '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>';
+
+        messageDiv.appendChild(icon);
+        messageDiv.appendChild(document.createTextNode(message));
+        input.parentElement.appendChild(messageDiv);
+    }
+});
+</script>
+{% endblock %}

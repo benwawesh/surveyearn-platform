@@ -1,0 +1,38 @@
+<!-- 401.html - Unauthorized -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unauthorized - SurveyEarn</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center">
+    <div class="text-center px-4">
+        <div class="mb-8">
+            <i class="fas fa-user-lock text-6xl text-amber-500 mb-4"></i>
+            <h1 class="text-6xl font-bold text-gray-900 mb-4">401</h1>
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Authentication Required</h2>
+            <p class="text-gray-600 mb-8 max-w-md mx-auto">
+                You need to log in to access this page. Please authenticate with your credentials.
+            </p>
+        </div>
+
+        <div class="space-y-4">
+            <a href="{% url 'accounts:login' %}"
+               class="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition duration-300">
+                <i class="fas fa-sign-in-alt mr-2"></i>Login
+            </a>
+            <a href="{% url 'accounts:register' %}"
+               class="inline-block bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition duration-300 ml-4">
+                <i class="fas fa-user-plus mr-2"></i>Sign Up
+            </a>
+        </div>
+
+        <div class="mt-8 text-sm text-gray-500">
+            <p>Forgot your password? <a href="{% url 'accounts:password_reset' %}" class="text-blue-600 hover:underline">Reset it here</a></p>
+        </div>
+    </div>
+</body>
+</html>

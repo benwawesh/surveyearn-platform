@@ -1,0 +1,521 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}System Settings - SurveyEarn Admin{% endblock %}
+
+{% block page_title %}System Settings{% endblock %}
+{% block page_description %}Manage registration fees, commission rates, and platform parameters{% endblock %}
+
+{% block page_actions %}
+<!-- Add navigation buttons to page header -->
+<div class="flex space-x-2">
+    <a href="{% url 'custom_admin:financial_analytics' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm">
+        <i class="fas fa-chart-bar mr-1"></i>
+        Analytics Dashboard
+    </a>
+    <a href="{% url 'custom_admin:settings_audit_log' %}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
+        <i class="fas fa-history mr-1"></i>
+        View Audit Log
+    </a>
+    <button onclick="exportSettings()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm">
+        <i class="fas fa-download mr-1"></i>
+        Export Settings
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<!-- Settings Statistics Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <!-- Registration Fee -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <div class="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
+                    <i class="fas fa-money-bill-wave text-white text-sm"></i>
+                </div>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium text-gray-500">Registration Fee</p>
+                <p class="text-2xl font-semibold text-gray-900" id="current-reg-fee">Loading...</p>
+            </div>
+        </div>
+        <div class="mt-2">
+            <span class="text-sm text-blue-600">
+                KSh amount charged to new users
+            </span>
+        </div>
+    </div>
+
+    <!-- Commission Rate -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <div class="w-8 h-8 bg-green-500 rounded-md flex items-center justify-center">
+                    <i class="fas fa-percentage text-white text-sm"></i>
+                </div>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium text-gray-500">Commission Rate</p>
+                <p class="text-2xl font-semibold text-gray-900" id="current-commission">Loading...</p>
+            </div>
+        </div>
+        <div class="mt-2">
+            <span class="text-sm text-green-600">
+                Referral commission percentage
+            </span>
+        </div>
+    </div>
+
+    <!-- Min Withdrawal -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <div class="w-8 h-8 bg-purple-500 rounded-md flex items-center justify-center">
+                    <i class="fas fa-hand-holding-usd text-white text-sm"></i>
+                </div>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium text-gray-500">Min Withdrawal</p>
+                <p class="text-2xl font-semibold text-gray-900" id="current-min-withdrawal">Loading...</p>
+            </div>
+        </div>
+        <div class="mt-2">
+            <span class="text-sm text-purple-600">
+                Minimum withdrawal amount
+            </span>
+        </div>
+    </div>
+
+    <!-- Total Settings -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <div class="w-8 h-8 bg-yellow-500 rounded-md flex items-center justify-center">
+                    <i class="fas fa-cogs text-white text-sm"></i>
+                </div>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium text-gray-500">Total Settings</p>
+                <p class="text-2xl font-semibold text-gray-900">{{ total_settings }}</p>
+            </div>
+        </div>
+        <div class="mt-2">
+            <span class="text-sm text-yellow-600">
+                Configurable parameters
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Financial Impact Analysis Section -->
+<div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 mb-8 border border-blue-100">
+    <div class="flex items-center justify-between mb-4">
+        <div>
+            <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                <i class="fas fa-calculator text-blue-600 mr-2"></i>
+                Financial Impact Analysis
+            </h3>
+            <p class="text-sm text-gray-600">See how settings changes affect platform revenue</p>
+        </div>
+        <a href="{% url 'custom_admin:financial_analytics' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors">
+            <i class="fas fa-chart-bar mr-2"></i>View Full Analytics
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Monthly Revenue Projection -->
+        <div class="bg-white rounded-lg p-4 border border-blue-200 settings-impact-card">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-sm font-medium text-gray-600">Monthly Revenue Projection</span>
+                <i class="fas fa-chart-line text-green-500"></i>
+            </div>
+            <p class="text-xl font-bold text-green-600" id="revenue-projection">KES 0</p>
+            <p class="text-xs text-gray-500">Based on current settings</p>
+        </div>
+
+        <!-- Average User Value -->
+        <div class="bg-white rounded-lg p-4 border border-blue-200 settings-impact-card">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-sm font-medium text-gray-600">Avg User Lifetime Value</span>
+                <i class="fas fa-user-check text-blue-500"></i>
+            </div>
+            <p class="text-xl font-bold text-blue-600" id="user-lifetime-value">KES 0</p>
+            <p class="text-xs text-gray-500">Registration + expected surveys</p>
+        </div>
+
+        <!-- Commission Impact -->
+        <div class="bg-white rounded-lg p-4 border border-blue-200 settings-impact-card">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-sm font-medium text-gray-600">Monthly Commission Cost</span>
+                <i class="fas fa-percentage text-purple-500"></i>
+            </div>
+            <p class="text-xl font-bold text-purple-600" id="commission-cost">KES 0</p>
+            <p class="text-xs text-gray-500">Total referral payouts</p>
+        </div>
+    </div>
+</div>
+
+<!-- Action Buttons -->
+<div class="mb-6 flex justify-between items-center">
+    <div>
+        {% if not settings_by_type %}
+        <form method="post" action="{% url 'custom_admin:initialize_settings' %}" class="inline">
+            {% csrf_token %}
+            <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
+                <i class="fas fa-plus mr-1"></i>
+                Initialize Settings
+            </button>
+        </form>
+        {% endif %}
+    </div>
+    <div class="space-x-2">
+        <!-- Navigation to audit log -->
+        <a href="{% url 'custom_admin:settings_audit_log' %}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
+            <i class="fas fa-history mr-1"></i>
+            View Changes
+        </a>
+        <button onclick="exportSettings()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm">
+            <i class="fas fa-download mr-1"></i>
+            Export
+        </button>
+        <form method="post" action="{% url 'custom_admin:reset_to_defaults' %}" class="inline"
+              onsubmit="return confirm('Reset all settings to default values? This cannot be undone.')">
+            {% csrf_token %}
+            <button type="submit" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm">
+                <i class="fas fa-undo mr-1"></i>
+                Reset Defaults
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Settings Content -->
+{% if settings_by_type %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Settings List -->
+    <div class="lg:col-span-2 space-y-6">
+        {% for setting_type, settings in settings_by_type.items %}
+        <div class="bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-medium text-gray-900">
+                    {% if setting_type == 'fee' %}
+                        <i class="fas fa-money-bill-wave text-blue-500 mr-2"></i>Fee Settings
+                    {% elif setting_type == 'rate' %}
+                        <i class="fas fa-percentage text-green-500 mr-2"></i>Rate Settings
+                    {% elif setting_type == 'limit' %}
+                        <i class="fas fa-tachometer-alt text-purple-500 mr-2"></i>Limit Settings
+                    {% else %}
+                        <i class="fas fa-cog text-gray-500 mr-2"></i>Configuration Settings
+                    {% endif %}
+                </h3>
+            </div>
+            <div class="p-6">
+                <div class="space-y-4">
+                    {% for setting in settings %}
+                    <div class="flex items-center justify-between py-4 {% if not forloop.last %}border-b border-gray-100{% endif %}">
+                        <div class="flex-1">
+                            <h4 class="text-sm font-medium text-gray-900">{{ setting.setting_name }}</h4>
+                            <p class="text-sm text-gray-500 mt-1">{{ setting.description }}</p>
+                            {% if setting.min_value or setting.max_value %}
+                            <p class="text-xs text-blue-600 mt-1">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                Range: {{ setting.min_value|default:"∞" }} - {{ setting.max_value|default:"∞" }}
+                            </p>
+                            {% endif %}
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <div class="text-right">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800"
+                                      id="value-{{ setting.setting_key }}">
+                                    {% if setting.setting_type == 'rate' %}
+                                        {{ setting.get_value|floatformat:3 }}
+                                    {% else %}
+                                        {{ setting.get_value }}
+                                    {% endif %}
+                                </span>
+                                <p class="text-xs text-gray-400 mt-1">
+                                    {% if setting.decimal_value is not None %}Decimal
+                                    {% elif setting.integer_value is not None %}Integer
+                                    {% elif setting.boolean_value is not None %}Boolean
+                                    {% else %}Text{% endif %}
+                                </p>
+                            </div>
+                            <button onclick="quickEditSetting('{{ setting.setting_key }}', '{{ setting.get_value }}', '{{ setting.setting_name }}')"
+                                    class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm">
+                                <i class="fas fa-edit mr-1"></i>Edit
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Recent Changes Sidebar -->
+    <div class="lg:col-span-1">
+        <div class="bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-lg font-medium text-gray-900">Recent Changes</h3>
+                <!-- Add link to full audit log -->
+                <a href="{% url 'custom_admin:settings_audit_log' %}" class="text-blue-500 hover:text-blue-600 text-sm">
+                    <i class="fas fa-external-link-alt mr-1"></i>View All
+                </a>
+            </div>
+            <div class="p-6">
+                {% if recent_changes %}
+                    <div class="space-y-4">
+                        {% for log in recent_changes %}
+                        <div class="border-l-4 border-blue-500 pl-4 py-2">
+                            <h4 class="text-sm font-medium text-gray-900">{{ log.setting.setting_name }}</h4>
+                            <p class="text-sm text-gray-600 mt-1">
+                                <span class="text-red-600">{{ log.old_value|default:"(empty)" }}</span>
+                                <i class="fas fa-arrow-right mx-2 text-gray-400"></i>
+                                <span class="text-green-600">{{ log.new_value }}</span>
+                            </p>
+                            <p class="text-xs text-gray-500 mt-1">
+                                by {{ log.changed_by.username }} • {{ log.changed_at|timesince }} ago
+                            </p>
+                            {% if log.change_reason %}
+                            <p class="text-xs text-gray-400 mt-1 italic">
+                                "{{ log.change_reason|truncatewords:8 }}"
+                            </p>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-gray-500 text-sm text-center py-4">No recent changes</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<!-- No Settings Found -->
+<div class="bg-white rounded-lg shadow p-8 text-center">
+    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <i class="fas fa-cogs text-gray-400 text-2xl"></i>
+    </div>
+    <h3 class="text-lg font-medium text-gray-900 mb-2">No Settings Found</h3>
+    <p class="text-gray-500 mb-6">Initialize default settings to manage registration fees, commission rates, and other system parameters.</p>
+    <form method="post" action="{% url 'custom_admin:initialize_settings' %}">
+        {% csrf_token %}
+        <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg">
+            <i class="fas fa-plus mr-2"></i>
+            Initialize Default Settings
+        </button>
+    </form>
+</div>
+{% endif %}
+
+<!-- Quick Edit Modal -->
+<div id="quickEditModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-medium text-gray-900">Quick Edit Setting</h3>
+        </div>
+        <div class="p-6">
+            <form id="quickEditForm">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Setting Name</label>
+                    <input type="text" id="settingName" class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50" readonly>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">New Value</label>
+                    <input type="text" id="settingValue" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required>
+                    <p class="text-sm text-gray-500 mt-1">Enter the new value for this setting</p>
+                </div>
+                <input type="hidden" id="settingKey">
+            </form>
+        </div>
+        <div class="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+            <button onclick="closeQuickEditModal()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md">
+                Cancel
+            </button>
+            <button onclick="saveQuickEdit()" class="px-4 py-2 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-md">
+                <i class="fas fa-save mr-1"></i>Save Changes
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+.settings-impact-card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.settings-impact-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Animation for value updates */
+@keyframes valueUpdate {
+    0% { background-color: rgba(34, 197, 94, 0.2); }
+    100% { background-color: transparent; }
+}
+
+.value-updated {
+    animation: valueUpdate 1s ease-out;
+}
+</style>
+
+<script>
+// Calculate financial impact based on current settings
+function calculateFinancialImpact() {
+    // Get current setting values from the DOM
+    const regFeeText = document.getElementById('current-reg-fee').textContent.replace('KSh ', '').replace('Loading...', '0');
+    const commissionText = document.getElementById('current-commission').textContent.replace('%', '').replace('Loading...', '0');
+    const minWithdrawalText = document.getElementById('current-min-withdrawal').textContent.replace('KSh ', '').replace('Loading...', '0');
+
+    const registrationFee = parseFloat(regFeeText) || 0;
+    const commissionRate = parseFloat(commissionText) / 100 || 0;
+    const minWithdrawal = parseFloat(minWithdrawalText) || 0;
+
+    // Estimate monthly metrics (you can replace these with actual data from your backend)
+    const estimatedMonthlyUsers = 50; // You can make this dynamic from your views
+    const avgSurveysPerUser = 5;
+    const surveyPayment = 10; // Base survey payment
+    const referralRate = 0.3; // 30% of users are referred
+
+    // Calculate projections
+    const monthlyRevenue = estimatedMonthlyUsers * registrationFee;
+    const monthlySurveyPayments = estimatedMonthlyUsers * avgSurveysPerUser * surveyPayment;
+    const monthlyCommissions = estimatedMonthlyUsers * referralRate * registrationFee * commissionRate;
+    const userLifetimeValue = registrationFee + (avgSurveysPerUser * surveyPayment);
+
+    // Update the display with animation
+    updateValueWithAnimation('revenue-projection', 'KES ' + monthlyRevenue.toFixed(0));
+    updateValueWithAnimation('user-lifetime-value', 'KES ' + userLifetimeValue.toFixed(0));
+    updateValueWithAnimation('commission-cost', 'KES ' + monthlyCommissions.toFixed(0));
+}
+
+// Update value with animation effect
+function updateValueWithAnimation(elementId, newValue) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.classList.add('value-updated');
+        element.textContent = newValue;
+
+        // Remove animation class after animation completes
+        setTimeout(() => {
+            element.classList.remove('value-updated');
+        }, 1000);
+    }
+}
+
+// Load current values for dashboard stats
+function loadCurrentValues() {
+    fetch('{% url "custom_admin:current_settings_api" %}')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('current-reg-fee').textContent = 'KSh ' + data.registration_fee;
+            document.getElementById('current-commission').textContent = (parseFloat(data.referral_commission_rate) * 100).toFixed(1) + '%';
+            document.getElementById('current-min-withdrawal').textContent = 'KSh ' + data.minimum_withdrawal_amount;
+
+            // Calculate financial impact after loading values
+            setTimeout(calculateFinancialImpact, 100); // Small delay to ensure DOM is updated
+        })
+        .catch(error => {
+            console.error('Error loading current values:', error);
+            document.getElementById('current-reg-fee').textContent = 'Error';
+            document.getElementById('current-commission').textContent = 'Error';
+            document.getElementById('current-min-withdrawal').textContent = 'Error';
+        });
+}
+
+// Quick edit functionality
+function quickEditSetting(settingKey, currentValue, settingName) {
+    document.getElementById('settingKey').value = settingKey;
+    document.getElementById('settingName').value = settingName;
+    document.getElementById('settingValue').value = currentValue;
+    document.getElementById('quickEditModal').classList.remove('hidden');
+    document.getElementById('quickEditModal').classList.add('flex');
+}
+
+function closeQuickEditModal() {
+    document.getElementById('quickEditModal').classList.add('hidden');
+    document.getElementById('quickEditModal').classList.remove('flex');
+}
+
+function saveQuickEdit() {
+    const settingKey = document.getElementById('settingKey').value;
+    const newValue = document.getElementById('settingValue').value;
+
+    if (!newValue.trim()) {
+        alert('Please enter a value');
+        return;
+    }
+
+    // Get CSRF token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+    fetch('{% url "custom_admin:quick_update_setting" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+            setting_key: settingKey,
+            value: newValue
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            closeQuickEditModal();
+
+            // Update the displayed value
+            const valueElement = document.getElementById('value-' + settingKey);
+            if (valueElement) {
+                valueElement.textContent = data.new_value;
+            }
+
+            // Show success notification
+            showNotification('Setting updated successfully!', 'success');
+
+            // Reload current values and recalculate impact
+            loadCurrentValues();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to update setting');
+    });
+}
+
+function exportSettings() {
+    window.location.href = '{% url "custom_admin:export_settings" %}';
+}
+
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg text-white z-50 ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+
+// Load values when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    loadCurrentValues();
+
+    // Close modal when clicking outside
+    document.getElementById('quickEditModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeQuickEditModal();
+        }
+    });
+});
+</script>
+
+{% endblock %}

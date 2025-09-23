@@ -1,0 +1,233 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cancel Withdrawal - SurveyEarn</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation Header -->
+    <nav class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <a href="{% url 'accounts:dashboard' %}" class="text-2xl font-bold text-blue-600">
+                        <i class="fas fa-chart-bar mr-2"></i>SurveyEarn
+                    </a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'surveys:survey_list' %}" class="text-gray-600 hover:text-blue-600">
+                        <i class="fas fa-poll-h mr-1"></i>Surveys
+                    </a>
+                    <a href="{% url 'payments:wallet_dashboard' %}" class="text-blue-600 font-semibold">
+                        <i class="fas fa-wallet mr-1"></i>Wallet
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Breadcrumb -->
+        <div class="mb-6">
+            <nav class="flex" aria-label="Breadcrumb">
+                <ol class="flex items-center space-x-4">
+                    <li>
+                        <a href="{% url 'payments:wallet_dashboard' %}" class="text-blue-600 hover:text-blue-700">
+                            <i class="fas fa-wallet mr-1"></i>Wallet
+                        </a>
+                    </li>
+                    <li>
+                        <div class="flex items-center">
+                            <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                            <a href="{% url 'payments:withdrawal_detail' withdrawal.id %}" class="text-blue-600 hover:text-blue-700">
+                                Withdrawal Details
+                            </a>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="flex items-center">
+                            <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                            <span class="text-gray-500">Cancel Request</span>
+                        </div>
+                    </li>
+                </ol>
+            </nav>
+        </div>
+
+        <!-- Page Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Cancel Withdrawal Request</h1>
+            <p class="text-gray-600 mt-2">Request ID: {{ withdrawal.id|slice:":8" }}</p>
+        </div>
+
+        <!-- Warning Card -->
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-8">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-exclamation-triangle text-yellow-600 text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-yellow-800 font-semibold mb-2">Are you sure you want to cancel this withdrawal?</h3>
+                    <p class="text-yellow-700 text-sm">
+                        This action cannot be undone. Once cancelled, you will need to create a new withdrawal request if you want to withdraw these funds.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Withdrawal Details Summary -->
+        <div class="bg-white rounded-xl shadow-sm mb-8">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-900">Withdrawal Summary</h2>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Amount Details -->
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-500 mb-3">Amount Details</h3>
+                        <div class="space-y-2">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Requested Amount</span>
+                                <span class="font-semibold">KSh {{ withdrawal.amount|floatformat:2 }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Processing Fee</span>
+                                <span class="font-semibold text-red-600">-KSh {{ withdrawal.withdrawal_fee|floatformat:2 }}</span>
+                            </div>
+                            <div class="border-t pt-2">
+                                <div class="flex justify-between">
+                                    <span class="font-medium text-gray-900">You Would Receive</span>
+                                    <span class="font-bold text-green-600">KSh {{ withdrawal.net_amount|floatformat:2 }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Method -->
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-500 mb-3">Payment Method</h3>
+                        <div class="flex items-center mb-3">
+                            <div class="p-2 rounded-full
+                            {% if withdrawal.payment_method == 'mpesa' %}bg-green-100
+                            {% elif withdrawal.payment_method == 'bank_transfer' %}bg-blue-100
+                            {% elif withdrawal.payment_method == 'paypal' %}bg-blue-100
+                            {% endif %}">
+                                <i class="fas
+                                {% if withdrawal.payment_method == 'mpesa' %}fa-mobile-alt text-green-600
+                                {% elif withdrawal.payment_method == 'bank_transfer' %}fa-university text-blue-600
+                                {% elif withdrawal.payment_method == 'paypal' %}fa-paypal text-blue-600
+                                {% endif %}"></i>
+                            </div>
+                            <div class="ml-3">
+                                <p class="font-medium text-gray-900">{{ withdrawal.get_payment_method_display }}</p>
+                                {% if withdrawal.payment_method == 'mpesa' %}
+                                    <p class="text-sm text-gray-500">{{ withdrawal.mpesa_phone_number }}</p>
+                                {% elif withdrawal.payment_method == 'bank_transfer' %}
+                                    <p class="text-sm text-gray-500">{{ withdrawal.bank_name }} - {{ withdrawal.account_number }}</p>
+                                {% elif withdrawal.payment_method == 'paypal' %}
+                                    <p class="text-sm text-gray-500">{{ withdrawal.paypal_email }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="text-sm text-gray-600">
+                            <p><strong>Requested:</strong> {{ withdrawal.created_at|date:"M d, Y H:i" }}</p>
+                            <p><strong>Status:</strong>
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                    {{ withdrawal.get_status_display }}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cancellation Form -->
+        <div class="bg-white rounded-xl shadow-sm">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-900">Confirm Cancellation</h2>
+            </div>
+            <div class="p-6">
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                        <div class="flex items-center">
+                            <i class="fas fa-info-circle text-red-600 mr-2"></i>
+                            <div class="text-red-800 text-sm">
+                                <p class="font-medium">What happens when you cancel:</p>
+                                <ul class="mt-2 list-disc list-inside space-y-1">
+                                    <li>This withdrawal request will be permanently cancelled</li>
+                                    <li>No money will be sent to your payment method</li>
+                                    <li>You can create a new withdrawal request anytime</li>
+                                    <li>The funds remain in your account balance</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex flex-col sm:flex-row gap-4 justify-end">
+                        <a href="{% url 'payments:withdrawal_detail' withdrawal.id %}"
+                           class="inline-flex justify-center items-center px-6 py-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <i class="fas fa-arrow-left mr-2"></i>
+                            Keep Withdrawal
+                        </a>
+
+                        <button type="submit"
+                                class="inline-flex justify-center items-center px-6 py-3 border border-transparent rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                            <i class="fas fa-times-circle mr-2"></i>
+                            Yes, Cancel Withdrawal
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Help Information -->
+        <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <h3 class="text-blue-900 font-semibold mb-3">
+                <i class="fas fa-question-circle mr-2"></i>Need Help?
+            </h3>
+            <div class="text-blue-800 text-sm space-y-2">
+                <p>If you're cancelling because of an issue with your payment details, you can:</p>
+                <ul class="list-disc list-inside ml-4 space-y-1">
+                    <li>Keep this request and contact support to update the details</li>
+                    <li>Cancel and create a new request with the correct information</li>
+                </ul>
+                <div class="mt-4 pt-4 border-t border-blue-200">
+                    <p><strong>Contact Support:</strong> support@surveyearn.com</p>
+                    <p><strong>Response Time:</strong> Within 24 hours</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-12 mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <div class="flex justify-center items-center mb-4">
+                    <i class="fas fa-chart-bar text-2xl mr-2"></i>
+                    <span class="text-xl font-bold">SurveyEarn</span>
+                </div>
+                <p class="text-gray-300 text-sm">
+                    Earn money by completing surveys. Safe, secure, and reliable.
+                </p>
+                <div class="mt-6 flex justify-center space-x-6 text-sm">
+                    <a href="#" class="text-gray-300 hover:text-white">Privacy Policy</a>
+                    <a href="#" class="text-gray-300 hover:text-white">Terms of Service</a>
+                    <a href="#" class="text-gray-300 hover:text-white">Contact Support</a>
+                </div>
+                <p class="mt-6 text-xs text-gray-400">
+                    &copy; 2024 SurveyEarn. All rights reserved.
+                </p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,351 @@
+{% extends 'accounts/base.html' %}
+{% load static %}
+{% load survey_extras %}
+
+{% block title %}{{ survey.title }} - SurveyEarn{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        <!-- Survey Header -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                        <div class="flex items-center mb-2">
+                            <a href="{% url 'surveys:survey_list' %}" class="text-gray-500 hover:text-gray-700 transition-colors mr-3">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                                </svg>
+                            </a>
+                            <h1 class="text-2xl font-bold text-gray-900">{{ survey.title }}</h1>
+                        </div>
+                        <p class="text-gray-600 mb-4">{{ survey.description }}</p>
+
+                        <!-- Survey Meta Information -->
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div class="flex items-center text-sm text-gray-600">
+                                <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                                </svg>
+                                <span><strong>KSh {{ survey.payout|floatformat:2 }}</strong> reward</span>
+                            </div>
+                            <div class="flex items-center text-sm text-gray-600">
+                                <svg class="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <span>~5 minutes</span>
+                            </div>
+                            <div class="flex items-center text-sm text-gray-600">
+                                <svg class="w-4 h-4 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <span>{{ survey.questions.count }} question{{ survey.questions.count|pluralize }}</span>
+                            </div>
+                            <div class="flex items-center text-sm text-gray-600">
+                                <svg class="w-4 h-4 mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                </svg>
+                                <span>{{ survey.responses.count }}/{{ survey.max_responses|default:100 }} responses</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Survey Status -->
+                    <div class="ml-6 text-right">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 mb-2">
+                            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 8 8">
+                                <circle cx="4" cy="4" r="3"></circle>
+                            </svg>
+                            {{ survey.status|title }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Survey Form -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+            <form method="post" id="surveyForm">
+                {% csrf_token %}
+
+                <!-- Form Header -->
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-lg font-semibold text-gray-900">Survey Questions</h2>
+                        <div class="text-sm text-gray-600">
+                            <span id="questionCounter">Question 1 of {{ questions.count }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Questions Container -->
+                <div class="p-6">
+                    {% if questions %}
+                        {% for question in questions %}
+                        <div class="question-block mb-8 {% if not forloop.first %}hidden{% endif %}" data-question="{{ forloop.counter }}">
+                            <div class="mb-4">
+                                <h3 class="text-lg font-medium text-gray-900 mb-2">
+                                    {{ forloop.counter }}. {{ question.question_text }}
+                                    {% if question.is_required %}
+                                        <span class="text-red-500 text-sm ml-1">*</span>
+                                    {% endif %}
+                                </h3>
+                            </div>
+
+                            <!-- Question Input Based on Type -->
+                            <div class="question-input">
+                                {% if question.question_type == 'text' %}
+                                    <input type="text"
+                                           name="question_{{ question.id }}"
+                                           value="{% if form_data %}{% get_form_value form_data 'question_'|add:question.id %}{% endif %}"
+                                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                           placeholder="Enter your answer..."
+                                           {% if question.is_required %}required{% endif %}>
+
+                                {% elif question.question_type == 'textarea' %}
+                                    <textarea name="question_{{ question.id }}"
+                                              rows="4"
+                                              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-vertical"
+                                              placeholder="Enter your detailed answer..."
+                                              {% if question.is_required %}required{% endif %}>{% if form_data %}{% get_form_value form_data 'question_'|add:question.id %}{% endif %}</textarea>
+
+                                {% elif question.question_type == 'mcq' %}
+                                    <div class="space-y-3">
+                                        {% for choice in question.choices.all %}
+                                        {% get_form_value form_data 'question_'|add:question.id as current_value %}
+                                        <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                                            <input type="radio"
+                                                   name="question_{{ question.id }}"
+                                                   value="{{ choice.id }}"
+                                                   {% if current_value == choice.id|stringformat:"s" %}checked{% endif %}
+                                                   class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                                                   {% if question.is_required %}required{% endif %}>
+                                            <span class="ml-3 text-gray-900">{{ choice.choice_text }}</span>
+                                        </label>
+                                        {% endfor %}
+                                    </div>
+
+                                {% elif question.question_type == 'checkbox' %}
+                                    <div class="space-y-3">
+                                        {% for choice in question.choices.all %}
+                                        <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                                            <input type="checkbox"
+                                                   name="question_{{ question.id }}"
+                                                   value="{{ choice.id }}"
+                                                   class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                            <span class="ml-3 text-gray-900">{{ choice.choice_text }}</span>
+                                        </label>
+                                        {% endfor %}
+                                    </div>
+
+                                {% elif question.question_type == 'rating' %}
+                                    <div class="flex items-center justify-center space-x-2 py-4">
+                                        <span class="text-sm text-gray-600 mr-4">{{ question.rating_min|default:1 }}</span>
+                                        {% for i in "12345678910"|make_list %}
+                                            {% if i|add:0 <= question.rating_max|default:10 and i|add:0 >= question.rating_min|default:1 %}
+                                            {% get_form_value form_data 'question_'|add:question.id as current_rating %}
+                                            <label class="cursor-pointer">
+                                                <input type="radio"
+                                                       name="question_{{ question.id }}"
+                                                       value="{{ i }}"
+                                                       {% if current_rating == i %}checked{% endif %}
+                                                       class="sr-only peer"
+                                                       {% if question.is_required %}required{% endif %}>
+                                                <div class="w-10 h-10 border-2 border-gray-300 rounded-full flex items-center justify-center text-sm font-medium hover:border-blue-500 peer-checked:border-blue-500 peer-checked:bg-blue-500 peer-checked:text-white transition-all">
+                                                    {{ i }}
+                                                </div>
+                                            </label>
+                                            {% endif %}
+                                        {% endfor %}
+                                        <span class="text-sm text-gray-600 ml-4">{{ question.rating_max|default:10 }}</span>
+                                    </div>
+
+                                {% elif question.question_type == 'yes_no' %}
+                                    <div class="flex space-x-4">
+                                        {% get_form_value form_data 'question_'|add:question.id as current_bool %}
+                                        <label class="flex items-center p-4 border-2 border-gray-200 rounded-lg hover:border-green-500 cursor-pointer transition-colors has-[:checked]:border-green-500 has-[:checked]:bg-green-50">
+                                            <input type="radio"
+                                                   name="question_{{ question.id }}"
+                                                   value="yes"
+                                                   {% if current_bool == 'yes' %}checked{% endif %}
+                                                   class="w-4 h-4 text-green-600 border-gray-300 focus:ring-green-500"
+                                                   {% if question.is_required %}required{% endif %}>
+                                            <span class="ml-3 text-gray-900 font-medium">Yes</span>
+                                        </label>
+                                        <label class="flex items-center p-4 border-2 border-gray-200 rounded-lg hover:border-red-500 cursor-pointer transition-colors has-[:checked]:border-red-500 has-[:checked]:bg-red-50">
+                                            <input type="radio"
+                                                   name="question_{{ question.id }}"
+                                                   value="no"
+                                                   {% if current_bool == 'no' %}checked{% endif %}
+                                                   class="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500"
+                                                   {% if question.is_required %}required{% endif %}>
+                                            <span class="ml-3 text-gray-900 font-medium">No</span>
+                                        </label>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+
+                        <!-- Navigation Buttons -->
+                        <div class="flex items-center justify-between mt-8 pt-6 border-t border-gray-200">
+                            <button type="button"
+                                    id="prevBtn"
+                                    class="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 bg-white rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    disabled>
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                                </svg>
+                                Previous
+                            </button>
+
+                            <div class="flex items-center space-x-2">
+                                {% for question in questions %}
+                                <div class="w-3 h-3 rounded-full bg-gray-300 question-indicator" data-question="{{ forloop.counter }}"></div>
+                                {% endfor %}
+                            </div>
+
+                            <div>
+                                <button type="button"
+                                        id="nextBtn"
+                                        class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors mr-2">
+                                    Next
+                                    <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                    </svg>
+                                </button>
+                                <button type="submit"
+                                        id="submitBtn"
+                                        class="hidden inline-flex items-center px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    Submit Survey
+                                </button>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-8">
+                            <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <h3 class="text-lg font-medium text-gray-900 mb-2">No Questions Available</h3>
+                            <p class="text-gray-600">This survey doesn't have any questions yet.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+
+        <!-- Survey Info -->
+        <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <div class="flex">
+                <svg class="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                </svg>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-blue-800">Survey Information</h3>
+                    <div class="mt-2 text-sm text-blue-700">
+                        <ul class="list-disc pl-5 space-y-1">
+                            <li>All responses are completely anonymous and confidential</li>
+                            <li>You can navigate between questions using the Previous/Next buttons</li>
+                            <li>Required questions are marked with a red asterisk (*)</li>
+                            <li>Once submitted, you'll receive KSh {{ survey.payout|floatformat:2 }} in your account</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const questions = document.querySelectorAll('.question-block');
+    const totalQuestions = questions.length;
+    let currentQuestion = 1;
+
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const submitBtn = document.getElementById('submitBtn');
+    const questionCounter = document.getElementById('questionCounter');
+    const indicators = document.querySelectorAll('.question-indicator');
+
+    if (totalQuestions === 0) return;
+
+    function updateDisplay() {
+        questions.forEach(q => q.classList.add('hidden'));
+
+        const currentBlock = document.querySelector(`[data-question="${currentQuestion}"]`);
+        if (currentBlock) {
+            currentBlock.classList.remove('hidden');
+        }
+
+        questionCounter.textContent = `Question ${currentQuestion} of ${totalQuestions}`;
+
+        indicators.forEach((indicator, index) => {
+            if (index + 1 < currentQuestion) {
+                indicator.classList.remove('bg-gray-300', 'bg-blue-500');
+                indicator.classList.add('bg-green-500');
+            } else if (index + 1 === currentQuestion) {
+                indicator.classList.remove('bg-gray-300', 'bg-green-500');
+                indicator.classList.add('bg-blue-500');
+            } else {
+                indicator.classList.remove('bg-blue-500', 'bg-green-500');
+                indicator.classList.add('bg-gray-300');
+            }
+        });
+
+        prevBtn.disabled = currentQuestion === 1;
+
+        if (currentQuestion === totalQuestions) {
+            nextBtn.classList.add('hidden');
+            submitBtn.classList.remove('hidden');
+            submitBtn.style.display = 'inline-flex';
+        } else {
+            nextBtn.classList.remove('hidden');
+            submitBtn.classList.add('hidden');
+        }
+    }
+
+    function validateCurrentQuestion() {
+        const currentBlock = document.querySelector(`[data-question="${currentQuestion}"]`);
+        const requiredInputs = currentBlock.querySelectorAll('[required]');
+
+        for (let input of requiredInputs) {
+            if (input.type === 'radio') {
+                const radioGroup = currentBlock.querySelectorAll(`[name="${input.name}"]`);
+                const isChecked = Array.from(radioGroup).some(radio => radio.checked);
+                if (!isChecked) {
+                    alert('Please answer the required question before continuing.');
+                    return false;
+                }
+            } else if (!input.value.trim()) {
+                alert('Please answer the required question before continuing.');
+                input.focus();
+                return false;
+            }
+        }
+        return true;
+    }
+
+    prevBtn.addEventListener('click', function() {
+        if (currentQuestion > 1) {
+            currentQuestion--;
+            updateDisplay();
+        }
+    });
+
+    nextBtn.addEventListener('click', function() {
+        if (validateCurrentQuestion() && currentQuestion < totalQuestions) {
+            currentQuestion++;
+            updateDisplay();
+        }
+    });
+
+    updateDisplay();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,637 @@
+{% extends 'accounts/base.html' %}
+{% load static %}
+
+{% block title %}SurveyEarn - Earn Money Taking Surveys in Kenya{% endblock %}
+
+{% block extra_head %}
+<style>
+    .mpesa-popup {
+        transform: translateY(-100%);
+        transition: all 0.3s ease-in-out;
+    }
+
+    .mpesa-popup.show {
+        transform: translateY(0);
+    }
+
+    .mpesa-popup.hide {
+        opacity: 0;
+        transform: translateY(-100%);
+    }
+
+    .stats-counter {
+        transition: all 0.5s ease;
+    }
+
+    .leaderboard-item {
+        transition: all 0.3s ease;
+    }
+
+    .activity-item {
+        animation: slideInLeft 0.3s ease;
+    }
+
+    @keyframes slideInLeft {
+        from { transform: translateX(-20px); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+
+    .pulse-green {
+        animation: pulseGreen 2s infinite;
+    }
+
+    @keyframes pulseGreen {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+        50% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+    }
+
+    .live-stats {
+        animation: fadeInUp 0.5s ease;
+    }
+
+    @keyframes fadeInUp {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+
+    <!-- M-Pesa Pop-up Notifications Container -->
+    <div id="mpesaContainer" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 space-y-3">
+        <!-- Pop-ups will be dynamically inserted here -->
+    </div>
+
+    <!-- Hero Section -->
+    <div class="bg-white relative overflow-hidden">
+        <!-- Subtle Background Elements -->
+        <div class="absolute inset-0">
+            <div class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-green-100 to-green-50 rounded-full opacity-60 transform translate-x-32 -translate-y-32"></div>
+            <div class="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-blue-50 to-purple-50 rounded-full opacity-40 transform -translate-x-48 translate-y-48"></div>
+            <div class="absolute top-1/2 left-1/4 w-32 h-32 bg-gradient-to-br from-yellow-100 to-orange-100 rounded-full opacity-30"></div>
+        </div>
+
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+            <div class="text-center">
+                <!-- Main Heading with Color Accents -->
+                <div class="mb-6">
+                    <h1 class="text-5xl md:text-6xl font-bold text-gray-900 mb-2">
+                        Earn <span class="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-blue-600">Money</span>
+                    </h1>
+                    <h1 class="text-5xl md:text-6xl font-bold text-gray-900">
+                        With Your <span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">Opinions</span>
+                    </h1>
+                </div>
+
+                <p class="text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
+                    Join thousands of Kenyans earning <span class="font-semibold text-green-600">extra income</span> by completing surveys.
+                    Get paid in <span class="font-semibold text-blue-600">Kenyan Shillings</span> for sharing your thoughts!
+                </p>
+
+                <!-- Action Buttons with New Design -->
+                <div class="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+                    <a href="{% url 'accounts:register' %}" class="group bg-gradient-to-r from-green-600 to-green-700 text-white px-8 py-4 rounded-xl font-bold text-lg hover:from-green-700 hover:to-green-800 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 inline-block">
+                        <i class="fas fa-user-plus mr-2 group-hover:scale-110 transition-transform"></i>Start Earning Now
+                    </a>
+                    <a href="{% url 'accounts:login' %}" class="group border-2 border-gray-300 text-gray-700 px-8 py-4 rounded-xl font-bold text-lg hover:border-blue-500 hover:text-blue-600 transition-all duration-300 hover:shadow-md transform hover:-translate-y-1 inline-block">
+                        <i class="fas fa-sign-in-alt mr-2 group-hover:scale-110 transition-transform"></i>Login
+                    </a>
+                </div>
+
+                <!-- Enhanced Live Stats with Modern Cards -->
+                <div class="max-w-5xl mx-auto live-stats">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+                        <!-- Active Surveys Card -->
+                        <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 border border-blue-200 hover:shadow-lg transition-all duration-300 group">
+                            <div class="text-center">
+                                <div class="text-3xl md:text-4xl font-bold text-blue-700 stats-counter group-hover:scale-110 transition-transform" id="totalSurveys">{{ stats.total_surveys|default:156 }}</div>
+                                <div class="text-sm text-blue-600 font-medium mt-2">Active Surveys</div>
+                                <i class="fas fa-clipboard-list text-blue-400 text-lg mt-2 opacity-60"></i>
+                            </div>
+                        </div>
+
+                        <!-- Happy Users Card -->
+                        <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-6 border border-green-200 hover:shadow-lg transition-all duration-300 group">
+                            <div class="text-center">
+                                <div class="text-3xl md:text-4xl font-bold text-green-700 stats-counter group-hover:scale-110 transition-transform" id="activeUsers">{{ stats.active_users|default:15847 }}+</div>
+                                <div class="text-sm text-green-600 font-medium mt-2">Happy Users</div>
+                                <i class="fas fa-users text-green-400 text-lg mt-2 opacity-60"></i>
+                            </div>
+                        </div>
+
+                        <!-- Surveys Completed Card -->
+                        <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-6 border border-purple-200 hover:shadow-lg transition-all duration-300 group">
+                            <div class="text-center">
+                                <div class="text-3xl md:text-4xl font-bold text-purple-700 stats-counter group-hover:scale-110 transition-transform" id="totalResponses">{{ stats.total_responses|default:89456 }}+</div>
+                                <div class="text-sm text-purple-600 font-medium mt-2">Surveys Completed</div>
+                                <i class="fas fa-check-circle text-purple-400 text-lg mt-2 opacity-60"></i>
+                            </div>
+                        </div>
+
+                        <!-- Total Paid Card -->
+                        <div class="bg-gradient-to-br from-yellow-50 to-orange-100 rounded-2xl p-6 border border-yellow-200 hover:shadow-lg transition-all duration-300 group">
+                            <div class="text-center">
+                                <div class="text-2xl md:text-3xl font-bold text-orange-700 stats-counter group-hover:scale-110 transition-transform">
+                                    KSh <span id="payoutAmount">{{ stats.total_payout|default:"28,476,500" }}</span>+
+                                </div>
+                                <div class="text-sm text-orange-600 font-medium mt-2">Paid to Users</div>
+                                <i class="fas fa-money-bill-wave text-orange-400 text-lg mt-2 opacity-60"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Trust Indicators -->
+                <div class="mt-12 flex flex-wrap justify-center items-center gap-6 text-gray-500">
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-shield-alt text-green-500"></i>
+                        <span class="text-sm font-medium">100% Secure</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-mobile-alt text-blue-500"></i>
+                        <span class="text-sm font-medium">Instant M-Pesa</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-clock text-purple-500"></i>
+                        <span class="text-sm font-medium">24/7 Available</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-star text-yellow-500"></i>
+                        <span class="text-sm font-medium">5-Star Rated</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Activity Section (New Addition) -->
+    <div class="py-16 bg-gray-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+                <!-- Top Earners This Month -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center mb-6">
+                        <i class="fas fa-trophy text-yellow-500 text-2xl mr-3"></i>
+                        <h3 class="text-xl font-bold text-gray-900">Top Earners This Month</h3>
+                    </div>
+
+                    <div class="space-y-4" id="leaderboard">
+                        <!-- Leaderboard items will be populated by JavaScript -->
+                    </div>
+
+                    <div class="mt-6 text-center">
+                        <a href="{% url 'accounts:register' %}" class="text-blue-600 hover:text-blue-700 font-medium">
+                            Join the leaderboard →
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Recent Payments -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center mb-6">
+                        <i class="fas fa-mobile-alt text-green-500 text-2xl mr-3"></i>
+                        <h3 class="text-xl font-bold text-gray-900">Live Payments</h3>
+                    </div>
+
+                    <div class="space-y-4" id="recentActivity">
+                        <div class="text-gray-500 text-center py-8">
+                            <i class="fas fa-clock text-3xl mb-3 opacity-50"></i>
+                            <p>Watch live payments appear here...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Platform Highlights -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center mb-6">
+                        <i class="fas fa-chart-bar text-purple-500 text-2xl mr-3"></i>
+                        <h3 class="text-xl font-bold text-gray-900">Why Choose SurveyEarn</h3>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div class="flex items-center">
+                            <div class="bg-green-100 w-12 h-12 rounded-full flex items-center justify-center mr-4">
+                                <i class="fas fa-mobile-alt text-green-600"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-gray-900">Instant M-Pesa Payments</h4>
+                                <p class="text-sm text-gray-600">Get paid directly to your phone</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center">
+                            <div class="bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mr-4">
+                                <i class="fas fa-shield-alt text-blue-600"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-gray-900">100% Secure</h4>
+                                <p class="text-sm text-gray-600">Your data is always protected</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center">
+                            <div class="bg-purple-100 w-12 h-12 rounded-full flex items-center justify-center mr-4">
+                                <i class="fas fa-clock text-purple-600"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-gray-900">Flexible Schedule</h4>
+                                <p class="text-sm text-gray-600">Earn anytime, anywhere</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center">
+                            <div class="bg-yellow-100 w-12 h-12 rounded-full flex items-center justify-center mr-4 pulse-green">
+                                <i class="fas fa-money-bill-wave text-yellow-600"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-gray-900">High Payouts</h4>
+                                <p class="text-sm text-gray-600">Up to KSh 400,000 per survey</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 pt-6 border-t">
+                        <a href="{% url 'surveys:survey_list' %}" class="w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition text-center block">
+                            View Available Surveys
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- How It Works Section -->
+    <div class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-bold text-gray-900 mb-4">How SurveyEarn Works</h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">Getting started is simple. Follow these three easy steps to start earning money today.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
+                <div class="text-center">
+                    <div class="bg-blue-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <span class="text-2xl font-bold text-blue-600">1</span>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-4">Sign Up Free</h3>
+                    <p class="text-gray-600 text-lg">Create your account in less than 2 minutes. No fees, no hidden charges - completely free to join.</p>
+                </div>
+
+                <div class="text-center">
+                    <div class="bg-green-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <span class="text-2xl font-bold text-green-600">2</span>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-4">Take Surveys</h3>
+                    <p class="text-gray-600 text-lg">Choose from available surveys and share your honest opinions. Each survey takes just a few minutes.</p>
+                </div>
+
+                <div class="text-center">
+                    <div class="bg-purple-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <span class="text-2xl font-bold text-purple-600">3</span>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-4">Get Paid</h3>
+                    <p class="text-gray-600 text-lg">Earn money for every completed survey. Withdraw via M-Pesa, bank transfer, or mobile money.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CTA Section -->
+    <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-20">
+        <div class="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
+            <h2 class="text-4xl font-bold mb-6">Ready to Start Earning?</h2>
+            <p class="text-xl mb-8">Join thousands of Kenyans who are already earning money with their opinions</p>
+
+            <div class="space-x-4">
+                <a href="{% url 'accounts:register' %}" class="bg-white text-blue-600 px-8 py-4 rounded-lg font-bold text-lg hover:bg-gray-100 transition inline-block">
+                    <i class="fas fa-rocket mr-2"></i>Get Started Now
+                </a>
+            </div>
+
+            <p class="text-sm mt-6 opacity-90">Free to join • No credit card required • Start earning immediately</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // M-Pesa Simulation Data
+    // Dynamic name generation arrays
+    const kenyanFirstNames = [
+        "James", "Mary", "John", "Grace", "Peter", "Sarah", "David", "Ann", "Samuel", "Lucy",
+        "Michael", "Faith", "Robert", "Jane", "Joseph", "Nancy", "Kevin", "Rose", "Daniel", "Carol",
+        "George", "Alice", "Mark", "Joyce", "Paul", "Susan", "Anthony", "Helen", "Francis", "Betty",
+        "William", "Catherine", "Charles", "Margaret", "Thomas", "Elizabeth", "Brian", "Agnes",
+        "Kenneth", "Christine", "Stephen", "Monica", "Patrick", "Lydia", "Andrew", "Esther",
+        "Moses", "Ruth", "Isaac", "Rebecca", "Joshua", "Martha", "Philip", "Priscilla", "Vincent",
+        "Diana", "Emmanuel", "Mercy", "Benjamin", "Gladys", "Simon", "Hannah", "Felix", "Tabitha",
+        "Alex", "Eunice", "Collins", "Violet", "Dennis", "Naomi", "Edwin", "Stella", "Julius",
+        "Charity", "Raphael", "Joy", "Leonard", "Beatrice", "Timothy", "Patience", "Elijah",
+        "Irene", "Fredrick", "Winnie"
+    ];
+
+    const kenyanLastNameInitials = [
+        "K", "M", "N", "W", "O", "T", "L", "S", "R", "G", "H", "J", "C", "B", "P", "F", "D", "A", "E", "V"
+    ];
+
+    const phoneAreaCodes = ["071", "072", "073", "074", "075", "076", "077", "078", "079", "070"];
+
+    let usedNameCombinations = new Set();
+    let generatedUsers = [];
+
+    function generateUniqueName() {
+        let attempts = 0;
+        let fullName, nameKey;
+
+        do {
+            const firstName = kenyanFirstNames[Math.floor(Math.random() * kenyanFirstNames.length)];
+            const lastInitial = kenyanLastNameInitials[Math.floor(Math.random() * kenyanLastNameInitials.length)];
+            fullName = `${firstName} ${lastInitial}.`;
+            nameKey = `${firstName}-${lastInitial}`;
+            attempts++;
+
+            if (attempts > 50) {
+                usedNameCombinations.clear();
+                generatedUsers = [];
+                break;
+            }
+        } while (usedNameCombinations.has(nameKey));
+
+        usedNameCombinations.add(nameKey);
+        return fullName;
+    }
+
+    function generatePhoneNumber() {
+        const areaCode = phoneAreaCodes[Math.floor(Math.random() * phoneAreaCodes.length)];
+        const lastThree = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        return `${areaCode}***${lastThree}`;
+    }
+
+    function generateUniqueUser() {
+        const name = generateUniqueName();
+        const phone = generatePhoneNumber();
+
+        const user = { name, phone };
+        generatedUsers.push(user);
+
+        if (generatedUsers.length > 100) {
+            generatedUsers = generatedUsers.slice(-50);
+        }
+
+        return user;
+    }
+
+    const topEarners = [
+        {name: generateUniqueName(), total: Math.floor(Math.random() * (400000 - 350000) + 350000), trend: "up"},
+        {name: generateUniqueName(), total: Math.floor(Math.random() * (350000 - 300000) + 300000), trend: "up"},
+        {name: generateUniqueName(), total: Math.floor(Math.random() * (300000 - 250000) + 250000), trend: Math.random() < 0.2 ? "down" : "up"},
+        {name: generateUniqueName(), total: Math.floor(Math.random() * (250000 - 200000) + 200000), trend: Math.random() < 0.3 ? "same" : "up"},
+        {name: generateUniqueName(), total: Math.floor(Math.random() * (200000 - 150000) + 150000), trend: Math.random() < 0.2 ? "down" : "up"},
+        {name: generateUniqueName(), total: Math.floor(Math.random() * (180000 - 120000) + 120000), trend: Math.random() < 0.4 ? "same" : "up"},
+        {name: generateUniqueName(), total: Math.floor(Math.random() * (150000 - 100000) + 100000), trend: Math.random() < 0.3 ? "down" : "up"},
+        {name: generateUniqueName(), total: Math.floor(Math.random() * (130000 - 100000) + 100000), trend: Math.random() < 0.4 ? "down" : "up"}
+    ];
+
+    let recentActivityItems = [];
+    let nextNotificationTimer;
+    let totalPaidOut = {{ stats.total_payout|default:"28476500" }};
+    let activeMembers = {{ stats.active_users|default:"15847" }};
+
+    // Initialize the page
+    function initializePage() {
+        renderLeaderboard();
+        scheduleNextNotification();
+        updateLiveStats();
+    }
+
+    // Render leaderboard
+    function renderLeaderboard() {
+        const leaderboardEl = document.getElementById('leaderboard');
+        leaderboardEl.innerHTML = topEarners.slice(0, 5).map((user, index) => {
+            const medals = ['🏆', '🥈', '🥉', '4️⃣', '5️⃣'];
+            const trendIcon = user.trend === 'up' ? '📈' : user.trend === 'down' ? '📉' : '➡️';
+            const trendColor = user.trend === 'up' ? 'text-green-500' : user.trend === 'down' ? 'text-red-500' : 'text-gray-400';
+
+            return `
+                <div class="leaderboard-item flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div class="flex items-center">
+                        <span class="text-2xl mr-3">${medals[index]}</span>
+                        <div>
+                            <div class="font-semibold text-gray-900">${user.name}</div>
+                            <div class="text-sm text-gray-500">KSh ${user.total.toLocaleString()}</div>
+                        </div>
+                    </div>
+                    <div class="${trendColor}">${trendIcon}</div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function generateMpesaNotification() {
+        const user = generateUniqueUser();
+
+        let amount;
+        const randomType = Math.random();
+
+        if (randomType < 0.3) {
+            amount = Math.floor(Math.random() * (400000 - 200000) + 200000);
+        } else if (randomType < 0.6) {
+            amount = Math.floor(Math.random() * (200000 - 100000) + 100000);
+        } else {
+            amount = Math.floor(Math.random() * (100000 - 30000) + 30000);
+        }
+
+        if (Math.random() < 0.1) {
+            const roundAmounts = [50000, 75000, 100000, 150000, 200000, 250000, 300000, 350000, 400000];
+            amount = roundAmounts[Math.floor(Math.random() * roundAmounts.length)];
+        }
+
+        const balanceMultiplier = Math.random() * (5 - 1.5) + 1.5;
+        const balance = Math.floor(amount * balanceMultiplier) + Math.floor(Math.random() * 500000);
+
+        const ref = generateReference();
+        const time = new Date().toLocaleTimeString('en-GB', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        });
+        const date = new Date().toLocaleDateString('en-GB');
+
+        return {
+            user: user.name,
+            amount: amount,
+            balance: balance,
+            ref: ref,
+            time: time,
+            date: date,
+            phone: user.phone
+        };
+    }
+
+    function generateReference() {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let result = '';
+        for (let i = 0; i < 10; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
+    }
+
+    function showMpesaPopup() {
+        const notification = generateMpesaNotification();
+        const container = document.getElementById('mpesaContainer');
+
+        const popupEl = document.createElement('div');
+        popupEl.className = 'mpesa-popup bg-white rounded-lg shadow-2xl border-l-4 border-green-500 p-4 max-w-sm mx-auto';
+
+        popupEl.innerHTML = `
+            <div class="flex items-start justify-between mb-2">
+                <div class="flex items-center">
+                    <i class="fas fa-mobile-alt text-green-600 text-lg mr-2"></i>
+                    <span class="font-bold text-gray-900">M-PESA</span>
+                </div>
+                <button onclick="this.parentElement.parentElement.remove()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="text-sm text-gray-600 mb-3">New message</div>
+
+            <div class="space-y-2 text-sm">
+                <div class="font-semibold text-green-700">
+                    KSh ${notification.amount.toLocaleString()} received from SURVEYEARN
+                </div>
+                <div class="text-gray-600">
+                    on ${notification.date} at ${notification.time}
+                </div>
+                <div class="text-gray-600">
+                    From: SURVEYEARN
+                </div>
+                <div class="text-gray-600">
+                    Ref: ${notification.ref}
+                </div>
+                <div class="text-gray-600">
+                    Your M-Pesa balance is KSh ${notification.balance.toLocaleString()}
+                </div>
+            </div>
+
+            <div class="mt-3 pt-3 border-t border-gray-200">
+                <div class="flex items-center text-green-600 text-sm font-medium">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    ${notification.user} just got paid!
+                </div>
+            </div>
+        `;
+
+        container.appendChild(popupEl);
+        setTimeout(() => popupEl.classList.add('show'), 100);
+        addToRecentActivity(notification);
+        updateStats(notification.amount);
+
+        setTimeout(() => {
+            popupEl.classList.add('hide');
+            setTimeout(() => {
+                if (popupEl.parentNode) {
+                    popupEl.remove();
+                }
+            }, 300);
+        }, 4000);
+    }
+
+    function addToRecentActivity(notification) {
+        const activityEl = document.getElementById('recentActivity');
+
+        recentActivityItems.unshift({
+            user: notification.user,
+            amount: notification.amount,
+            time: new Date()
+        });
+
+        if (recentActivityItems.length > 5) {
+            recentActivityItems = recentActivityItems.slice(0, 5);
+        }
+
+        activityEl.innerHTML = recentActivityItems.map((item, index) => {
+            const timeAgo = getTimeAgo(item.time);
+            return `
+                <div class="activity-item flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
+                    <div class="flex items-center">
+                        <div class="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                        <div>
+                            <div class="font-medium text-gray-900">${item.user}</div>
+                            <div class="text-sm text-green-600">Earned KSh ${item.amount.toLocaleString()}</div>
+                        </div>
+                    </div>
+                    <div class="text-xs text-gray-500">${timeAgo}</div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function getTimeAgo(date) {
+        const now = new Date();
+        const diff = Math.floor((now - date) / 1000);
+
+        if (diff < 60) return 'Just now';
+        if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+        if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+        return `${Math.floor(diff / 86400)}d ago`;
+    }
+
+    function updateStats(newAmount) {
+        totalPaidOut += newAmount;
+        const payoutEl = document.getElementById('payoutAmount');
+        if (payoutEl) {
+            payoutEl.textContent = totalPaidOut.toLocaleString();
+        }
+
+        if (Math.random() < 0.3) {
+            activeMembers += Math.floor(Math.random() * 3) + 1;
+            const membersEl = document.getElementById('activeUsers');
+            if (membersEl) {
+                membersEl.textContent = activeMembers.toLocaleString() + '+';
+            }
+        }
+    }
+
+    function updateLiveStats() {
+        setInterval(() => {
+            if (Math.random() < 0.2) {
+                const responsesEl = document.getElementById('totalResponses');
+                if (responsesEl) {
+                    const current = parseInt(responsesEl.textContent.replace(/[+,]/g, ''));
+                    const increase = Math.floor(Math.random() * 5) + 1;
+                    responsesEl.textContent = (current + increase).toLocaleString() + '+';
+                }
+            }
+        }, 30000);
+
+        setInterval(() => {
+            if (Math.random() < 0.1) {
+                const surveysEl = document.getElementById('totalSurveys');
+                if (surveysEl) {
+                    const current = parseInt(surveysEl.textContent);
+                    const change = Math.random() < 0.7 ? 1 : -1;
+                    surveysEl.textContent = Math.max(100, current + change);
+                }
+            }
+        }, 45000);
+    }
+
+    function scheduleNextNotification() {
+        const minInterval = 15000;
+        const maxInterval = 45000;
+        const interval = Math.random() * (maxInterval - minInterval) + minInterval;
+
+        nextNotificationTimer = setTimeout(() => {
+            showMpesaPopup();
+            scheduleNextNotification();
+        }, interval);
+    }
+
+    document.addEventListener('DOMContentLoaded', initializePage);
+    setTimeout(showMpesaPopup, 10000);
+</script>
+{% endblock %}

@@ -1,0 +1,259 @@
+<!-- custom_admin/templates/admin/tutorials_dashboard.html -->
+{% extends 'admin/base.html' %}
+{% load static %}
+
+{% block title %}Tutorial Management Dashboard{% endblock %}
+
+{% block page_title %}Tutorial Management{% endblock %}
+{% block page_description %}Manage video tutorials, track user progress, and analyze learning engagement{% endblock %}
+
+{% block page_actions %}
+<div class="flex space-x-3">
+    <a href="{% url 'custom_admin:tutorials_list' %}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
+        <i class="fas fa-list mr-2"></i>Manage Tutorials
+    </a>
+    <a href="{% url 'custom_admin:categories_list' %}" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors">
+        <i class="fas fa-folder mr-2"></i>Categories
+    </a>
+    <button onclick="createSampleData()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors">
+        <i class="fas fa-database mr-2"></i>Sample Data
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Statistics Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
+    <!-- Total Tutorials -->
+    <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-600">Total Tutorials</p>
+                <p class="text-3xl font-bold text-gray-900">{{ stats.total_tutorials }}</p>
+            </div>
+            <div class="p-3 bg-blue-100 rounded-full">
+                <i class="fas fa-play-circle text-blue-600 text-xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Tutorials -->
+    <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-600">Active Tutorials</p>
+                <p class="text-3xl font-bold text-green-600">{{ stats.active_tutorials }}</p>
+            </div>
+            <div class="p-3 bg-green-100 rounded-full">
+                <i class="fas fa-check-circle text-green-600 text-xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Learners -->
+    <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-600">Active Learners</p>
+                <p class="text-3xl font-bold text-blue-600">{{ stats.total_learners }}</p>
+            </div>
+            <div class="p-3 bg-blue-100 rounded-full">
+                <i class="fas fa-users text-blue-600 text-xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Completion Rate -->
+    <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-600">Completion Rate</p>
+                <p class="text-3xl font-bold text-yellow-600">{{ stats.completion_rate }}%</p>
+            </div>
+            <div class="p-3 bg-yellow-100 rounded-full">
+                <i class="fas fa-trophy text-yellow-600 text-xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Categories -->
+    <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-600">Categories</p>
+                <p class="text-3xl font-bold text-purple-600">{{ stats.total_categories }}</p>
+            </div>
+            <div class="p-3 bg-purple-100 rounded-full">
+                <i class="fas fa-folder text-purple-600 text-xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quiz Pass Rate -->
+    <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-600">Quiz Pass Rate</p>
+                <p class="text-3xl font-bold text-green-600">{{ stats.quiz_pass_rate }}%</p>
+            </div>
+            <div class="p-3 bg-green-100 rounded-full">
+                <i class="fas fa-graduation-cap text-green-600 text-xl"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Content Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- Recent Completions -->
+    <div class="lg:col-span-2">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-900">
+                        <i class="fas fa-clock text-blue-500 mr-2"></i>
+                        Recent Completions
+                    </h3>
+                    <a href="{% url 'custom_admin:user_progress' %}" class="text-blue-600 hover:text-blue-800 text-sm">
+                        View All →
+                    </a>
+                </div>
+            </div>
+
+            <div class="p-6">
+                {% if recent_completions %}
+                    <div class="space-y-4">
+                        {% for progress in recent_completions %}
+                        <div class="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                            <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                                {{ progress.user.username|first|upper }}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-900 truncate">
+                                    {{ progress.user.username }}
+                                </p>
+                                <p class="text-sm text-gray-500 truncate">
+                                    {{ progress.tutorial.title }}
+                                </p>
+                                <p class="text-xs text-gray-400">
+                                    {{ progress.tutorial.category.name }}
+                                </p>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <div class="w-20 bg-gray-200 rounded-full h-2">
+                                    <div class="bg-green-500 h-2 rounded-full" style="width: 100%"></div>
+                                </div>
+                                <span class="text-xs text-green-600 font-medium">100%</span>
+                            </div>
+                            <div class="text-xs text-gray-400">
+                                {{ progress.last_accessed|timesince }} ago
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-8">
+                        <i class="fas fa-clock text-gray-400 text-3xl mb-3"></i>
+                        <p class="text-gray-500">No recent completions found</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Popular Tutorials & Categories -->
+    <div class="space-y-6">
+        <!-- Popular Tutorials -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    <i class="fas fa-trophy text-yellow-500 mr-2"></i>
+                    Popular Tutorials
+                </h3>
+            </div>
+
+            <div class="p-6">
+                {% if popular_tutorials %}
+                    <div class="space-y-4">
+                        {% for tutorial in popular_tutorials %}
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-900 truncate">
+                                    {{ tutorial.title }}
+                                </p>
+                                <p class="text-xs text-gray-500">
+                                    {{ tutorial.category.name }}
+                                </p>
+                            </div>
+                            <div class="ml-4">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    {{ tutorial.completion_count }} completed
+                                </span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-chart-bar text-gray-400 text-2xl mb-2"></i>
+                        <p class="text-gray-500 text-sm">No data available yet</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Category Performance -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    <i class="fas fa-folder text-purple-500 mr-2"></i>
+                    Category Performance
+                </h3>
+            </div>
+
+            <div class="p-6">
+                {% if category_stats %}
+                    <div class="space-y-4">
+                        {% for category in category_stats %}
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-900 truncate">
+                                    {{ category.name }}
+                                </p>
+                                <p class="text-xs text-gray-500">
+                                    {{ category.tutorial_count }} tutorials
+                                </p>
+                            </div>
+                            <div class="ml-4 text-right">
+                                <p class="text-sm font-medium text-gray-900">{{ category.completion_count }}</p>
+                                <p class="text-xs text-gray-500">completions</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-folder text-gray-400 text-2xl mb-2"></i>
+                        <p class="text-gray-500 text-sm">No categories found</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function createSampleData() {
+    if (confirm('This will create sample tutorial data for testing. Continue?')) {
+        showNotification('Sample data creation started. Run: python manage.py create_sample_tutorials --clear', 'info', 5000);
+    }
+}
+
+// Auto-refresh dashboard every 2 minutes
+setInterval(function() {
+    // You could implement live data refresh here
+}, 120000);
+</script>
+{% endblock %}

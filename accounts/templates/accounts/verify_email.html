@@ -1,0 +1,341 @@
+{% extends 'accounts/base.html' %}
+{% load static %}
+
+{% block title %}Verify Email - SurveyEarn{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div class="sm:mx-auto sm:w-full sm:max-w-md">
+        <div class="flex justify-center">
+            <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center">
+                <svg class="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                </svg>
+            </div>
+        </div>
+        <h2 class="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
+            Verify Your Email
+        </h2>
+        <p class="mt-2 text-center text-sm text-gray-600">
+            Check your inbox and click the verification link
+        </p>
+    </div>
+
+    <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+            {% if verification_sent %}
+            <!-- Email Sent Success -->
+            <div class="text-center">
+                <div class="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                    <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Verification Email Sent!</h3>
+                <p class="text-gray-600 mb-6">
+                    We've sent a verification link to <strong>{{ user.email }}</strong>. 
+                    Click the link in the email to verify your account.
+                </p>
+                
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 text-blue-600 mt-0.5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <div class="text-sm text-blue-800">
+                            <p class="font-medium mb-1">Email not in your inbox?</p>
+                            <ul class="list-disc list-inside space-y-1 text-blue-700">
+                                <li>Check your spam/junk folder</li>
+                                <li>Make sure {{ user.email }} is correct</li>
+                                <li>Wait a few minutes and refresh your email</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            {% elif verified %}
+            <!-- Email Verified Success -->
+            <div class="text-center">
+                <div class="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                    <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Email Verified Successfully!</h3>
+                <p class="text-gray-600 mb-6">
+                    Your email address has been verified. You can now access all features of SurveyEarn.
+                </p>
+                
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span class="text-sm font-medium text-green-800">Account verification complete</span>
+                    </div>
+                </div>
+                
+                <a href="{% url 'accounts:dashboard' %}" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200">
+                    Go to Dashboard
+                </a>
+            </div>
+            
+            {% elif verification_failed %}
+            <!-- Verification Failed -->
+            <div class="text-center">
+                <div class="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                    <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Verification Failed</h3>
+                <p class="text-gray-600 mb-6">
+                    The verification link is invalid or has expired. Please request a new verification email.
+                </p>
+                
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 text-red-600 mt-0.5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <div class="text-sm text-red-800">
+                            <p class="font-medium mb-1">Common issues:</p>
+                            <ul class="list-disc list-inside space-y-1 text-red-700">
+                                <li>Verification link has expired (valid for 24 hours)</li>
+                                <li>Link has already been used</li>
+                                <li>Link was copied incorrectly</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            {% else %}
+            <!-- Initial verification request -->
+            <div class="text-center">
+                <div class="mx-auto w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-4">
+                    <svg class="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Email Not Verified</h3>
+                <p class="text-gray-600 mb-6">
+                    Your email address <strong>{{ user.email }}</strong> needs to be verified to access all features.
+                </p>
+                
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 text-yellow-600 mt-0.5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <div class="text-sm text-yellow-800">
+                            <p class="font-medium mb-1">Why verify your email?</p>
+                            <ul class="list-disc list-inside space-y-1 text-yellow-700">
+                                <li>Secure your account and earnings</li>
+                                <li>Receive important notifications</li>
+                                <li>Access withdrawal features</li>
+                                <li>Get survey invitations</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Resend Verification -->
+            {% if not verified %}
+            <div class="mt-6 border-t border-gray-200 pt-6">
+                <form id="resendForm" method="post" action="{% url 'accounts:resend_verification' %}">
+                    {% csrf_token %}
+                    <div class="text-center">
+                        <p class="text-sm text-gray-600 mb-4">
+                            Didn't receive the email or need a new link?
+                        </p>
+                        <button type="submit" 
+                                id="resendBtn"
+                                class="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            <span id="resendText">Resend Verification Email</span>
+                        </button>
+                    </div>
+                </form>
+                
+                <!-- Cooldown timer -->
+                <div id="cooldownTimer" class="hidden text-center mt-4">
+                    <p class="text-sm text-gray-500">
+                        Please wait <span id="countdown" class="font-medium text-blue-600">60</span> seconds before requesting another email
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Update Email Address -->
+            {% if not verified %}
+            <div class="mt-6 border-t border-gray-200 pt-6">
+                <div class="text-center">
+                    <p class="text-sm text-gray-600 mb-4">
+                        Need to update your email address?
+                    </p>
+                    <a href="{% url 'accounts:profile' %}" 
+                       class="text-blue-600 hover:text-blue-500 text-sm font-medium transition-colors">
+                        Update Email Address
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Navigation Links -->
+            <div class="mt-8 border-t border-gray-200 pt-6">
+                <div class="flex justify-between text-sm">
+                    <a href="{% url 'accounts:dashboard' %}" class="text-blue-600 hover:text-blue-500 transition-colors">
+                        ← Back to Dashboard
+                    </a>
+                    {% if not verified %}
+                    <a href="{% url 'accounts:logout' %}" class="text-gray-600 hover:text-gray-500 transition-colors">
+                        Sign Out
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Resend verification form handling
+document.addEventListener('DOMContentLoaded', function() {
+    const resendForm = document.getElementById('resendForm');
+    const resendBtn = document.getElementById('resendBtn');
+    const resendText = document.getElementById('resendText');
+    const cooldownTimer = document.getElementById('cooldownTimer');
+    const countdown = document.getElementById('countdown');
+    
+    if (resendForm) {
+        resendForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Disable button and show loading state
+            resendBtn.disabled = true;
+            resendText.innerHTML = `
+                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Sending...
+            `;
+            
+            // Submit form via AJAX
+            fetch(resendForm.action, {
+                method: 'POST',
+                body: new FormData(resendForm),
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    resendText.textContent = 'Email Sent!';
+                    resendBtn.classList.remove('border-gray-300', 'text-gray-700', 'bg-white');
+                    resendBtn.classList.add('border-green-300', 'text-green-700', 'bg-green-50');
+                    
+                    // Start cooldown timer
+                    startCooldown();
+                    
+                    // Show success notification
+                    showNotification('Verification email sent successfully!', 'success');
+                } else {
+                    // Show error message
+                    showNotification(data.message || 'Failed to send verification email. Please try again.', 'error');
+                    resetResendButton();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('An error occurred. Please try again.', 'error');
+                resetResendButton();
+            });
+        });
+    }
+    
+    function resetResendButton() {
+        resendBtn.disabled = false;
+        resendText.innerHTML = `
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            Resend Verification Email
+        `;
+        resendBtn.classList.remove('border-green-300', 'text-green-700', 'bg-green-50');
+        resendBtn.classList.add('border-gray-300', 'text-gray-700', 'bg-white');
+    }
+    
+    function startCooldown() {
+        let timeLeft = 60;
+        countdown.textContent = timeLeft;
+        cooldownTimer.classList.remove('hidden');
+        resendBtn.classList.add('hidden');
+        
+        const timer = setInterval(() => {
+            timeLeft--;
+            countdown.textContent = timeLeft;
+            
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                cooldownTimer.classList.add('hidden');
+                resendBtn.classList.remove('hidden');
+                resetResendButton();
+            }
+        }, 1000);
+    }
+    
+    function showNotification(message, type) {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 z-50 max-w-sm w-full p-4 rounded-lg shadow-lg transform transition-all duration-300 ${
+            type === 'success' 
+                ? 'bg-green-100 border border-green-200 text-green-800' 
+                : 'bg-red-100 border border-red-200 text-red-800'
+        }`;
+        
+        notification.innerHTML = `
+            <div class="flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    ${type === 'success' 
+                        ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>'
+                        : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>'
+                    }
+                </svg>
+                <span class="font-medium">${message}</span>
+                <button onclick="this.parentElement.parentElement.remove()" class="ml-auto text-gray-500 hover:text-gray-700">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Animate in
+        setTimeout(() => {
+            notification.style.transform = 'translateY(0)';
+        }, 100);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            notification.style.transform = 'translateY(-100%)';
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.parentElement.removeChild(notification);
+                }
+            }, 300);
+        }, 5000);
+    }
+});
+</script>
+{% endblock %}

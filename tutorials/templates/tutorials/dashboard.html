@@ -1,0 +1,241 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}Video Tutorials Dashboard{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="container mx-auto px-4">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">Video Tutorials</h1>
+            <p class="text-gray-600">Watch videos and take quizzes all in one place</p>
+        </div>
+
+        <!-- Statistics -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white rounded-lg shadow p-4 text-center">
+                <div class="text-2xl font-bold text-blue-600">{{ total_tutorials }}</div>
+                <div class="text-sm text-gray-600">Total Tutorials</div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4 text-center">
+                <div class="text-2xl font-bold text-green-600">{{ completed_tutorials }}</div>
+                <div class="text-sm text-gray-600">Completed</div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4 text-center">
+                <div class="text-2xl font-bold text-yellow-600">{{ in_progress_tutorials }}</div>
+                <div class="text-sm text-gray-600">In Progress</div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4 text-center">
+                <div class="text-2xl font-bold text-purple-600">KES {{ total_earned }}</div>
+                <div class="text-sm text-gray-600">Total Earned</div>
+            </div>
+        </div>
+
+        <!-- Tutorials with Embedded Videos and Quizzes -->
+        {% if tutorials %}
+            <div class="space-y-8">
+                {% for tutorial in tutorials %}
+                <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                    <!-- Tutorial Header -->
+                    <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h2 class="text-2xl font-bold mb-2">{{ tutorial.title }}</h2>
+                                {% if tutorial.description %}
+                                <p class="text-blue-100">{{ tutorial.description }}</p>
+                                {% endif %}
+                            </div>
+                            <div class="text-right">
+                                {% if tutorial.completion_reward %}
+                                <div class="bg-green-500 px-3 py-1 rounded-full text-sm font-medium">
+                                    KES {{ tutorial.completion_reward }} Reward
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Tutorial Metadata -->
+                        <div class="flex flex-wrap gap-4 mt-4 text-sm">
+                            {% if tutorial.category %}
+                            <span class="bg-white bg-opacity-20 px-3 py-1 rounded-full">
+                                <i class="fas fa-folder mr-1"></i>{{ tutorial.category.name }}
+                            </span>
+                            {% endif %}
+
+                            {% if tutorial.duration %}
+                            <span class="bg-white bg-opacity-20 px-3 py-1 rounded-full">
+                                <i class="fas fa-clock mr-1"></i>{{ tutorial.duration }}
+                            </span>
+                            {% endif %}
+
+                            {% if tutorial.quiz_questions.count %}
+                            <span class="bg-white bg-opacity-20 px-3 py-1 rounded-full">
+                                <i class="fas fa-question-circle mr-1"></i>{{ tutorial.quiz_questions.count }} Questions
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
+                        <!-- Video Section -->
+                        <div class="lg:col-span-2">
+                            <h3 class="text-lg font-bold text-gray-800 mb-4">
+                                <i class="fas fa-play-circle mr-2 text-blue-600"></i>Watch Video
+                            </h3>
+
+                            <div class="aspect-video bg-black rounded-lg overflow-hidden mb-4">
+                                {% if tutorial.video_source == 'upload' and tutorial.video_file %}
+                                    <!-- Uploaded Video -->
+                                    <video class="w-full h-full" controls preload="metadata">
+                                        <source src="{{ tutorial.video_file.url }}" type="video/mp4">
+                                        Your browser does not support the video tag.
+                                    </video>
+
+                                {% elif tutorial.video_source == 'url' and tutorial.video_url %}
+                                    {% if 'youtube.com' in tutorial.video_url or 'youtu.be' in tutorial.video_url %}
+                                        <!-- YouTube Video -->
+                                        <iframe class="w-full h-full"
+                                                src="https://www.youtube.com/embed/{{ tutorial.video_url|slice:'32:' }}"
+                                                frameborder="0"
+                                                allowfullscreen>
+                                        </iframe>
+                                    {% else %}
+                                        <!-- Other Video URL -->
+                                        <iframe class="w-full h-full"
+                                                src="{{ tutorial.video_url }}"
+                                                frameborder="0"
+                                                allowfullscreen>
+                                        </iframe>
+                                    {% endif %}
+
+                                {% else %}
+                                    <!-- No Video Available -->
+                                    <div class="w-full h-full flex items-center justify-center text-white">
+                                        <div class="text-center">
+                                            <i class="fas fa-exclamation-triangle text-4xl mb-2 opacity-50"></i>
+                                            <p class="text-lg">Video not available</p>
+                                            <p class="text-sm opacity-75">Check admin panel settings</p>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Quiz Section -->
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800 mb-4">
+                                <i class="fas fa-question-circle mr-2 text-green-600"></i>Take Quiz
+                            </h3>
+
+                            {% if tutorial.quiz_questions.count %}
+                                <div class="space-y-4">
+                                    <!-- Quiz Info -->
+                                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                                        <div class="text-sm text-green-800 space-y-1">
+                                            <p><strong>Questions:</strong> {{ tutorial.quiz_questions.count }}</p>
+                                            <p><strong>Passing Score:</strong> {{ tutorial.quiz_passing_score|default:"70" }}%</p>
+                                            <p><strong>Attempts:</strong> Unlimited</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Quiz Questions Preview -->
+                                    <div class="bg-gray-50 rounded-lg p-4 max-h-64 overflow-y-auto">
+                                        <h4 class="font-bold text-gray-700 mb-3">Questions Preview:</h4>
+                                        <div class="space-y-3">
+                                            {% for question in tutorial.quiz_questions.all %}
+                                            <div class="bg-white rounded p-3 border-l-4 border-blue-500">
+                                                <p class="text-sm font-medium text-gray-800 mb-2">
+                                                    Q{{ forloop.counter }}: {{ question.question }}
+                                                </p>
+
+                                                <!-- Show answer options -->
+                                                <div class="space-y-1">
+                                                    {% for answer in question.answers.all %}
+                                                    <div class="text-xs text-gray-600 pl-4">
+                                                        <span class="{% if answer.is_correct %}text-green-600 font-medium{% endif %}">
+                                                            • {{ answer.answer }}
+                                                            {% if answer.is_correct %}<i class="fas fa-check text-green-500 ml-1"></i>{% endif %}
+                                                        </span>
+                                                    </div>
+                                                    {% endfor %}
+                                                </div>
+
+                                                <div class="mt-2 text-xs text-gray-500">
+                                                    <span class="bg-gray-100 px-2 py-1 rounded">
+                                                        {{ question.get_question_type_display }}
+                                                    </span>
+                                                    <span class="ml-2">{{ question.points }} points</span>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+
+                                    <!-- Quiz Action Button -->
+                                    <a href="{% url 'tutorials:start_quiz' tutorial.id %}"
+                                       class="block w-full bg-green-600 text-white text-center py-3 rounded-lg font-medium hover:bg-green-700 transition-colors">
+                                        <i class="fas fa-play mr-2"></i>Start Quiz
+                                    </a>
+                                </div>
+
+                            {% else %}
+                                <!-- No Quiz Available -->
+                                <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
+                                    <i class="fas fa-info-circle text-gray-400 text-3xl mb-3"></i>
+                                    <p class="text-gray-600 font-medium">No quiz available</p>
+                                    <p class="text-sm text-gray-500 mt-1">Watch the video to learn</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Tutorial Actions -->
+                    <div class="bg-gray-50 px-6 py-4 border-t">
+                        <div class="flex justify-between items-center">
+                            <div class="text-sm text-gray-600">
+                                Created: {{ tutorial.created_at|date:"M d, Y" }}
+                            </div>
+                            <div class="flex space-x-3">
+                                <a href="{% url 'tutorials:tutorial_detail' tutorial.id %}"
+                                   class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                    View Details
+                                </a>
+                                {% if user.is_staff %}
+                                <a href="{% url 'custom_admin:tutorial_detail' tutorial.id %}"
+                                   class="text-purple-600 hover:text-purple-800 text-sm font-medium">
+                                    Edit Tutorial
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+        {% else %}
+            <!-- No Tutorials Available -->
+            <div class="text-center py-16">
+                <div class="mb-6">
+                    <i class="fas fa-video text-6xl text-gray-400"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-600 mb-2">No Tutorials Available</h2>
+                <p class="text-gray-500 mb-6">No published tutorials found.</p>
+
+                {% if user.is_staff %}
+                <a href="{% url 'custom_admin:tutorial_create' %}"
+                   class="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700">
+                    Create First Tutorial
+                </a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.aspect-video {
+    aspect-ratio: 16 / 9;
+}
+</style>
+{% endblock %}

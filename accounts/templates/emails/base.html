@@ -1,0 +1,135 @@
+<!-- Create: accounts/templates/emails/base.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SurveyEarn{% endblock %}</title>
+    <style>
+        /* Email-safe CSS styles */
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .email-container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 10px;
+        }
+        .tagline {
+            color: #6b7280;
+            font-size: 14px;
+        }
+        .content {
+            margin-bottom: 30px;
+        }
+        .greeting {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #1f2937;
+        }
+        .button {
+            display: inline-block;
+            background-color: #3b82f6;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .button:hover {
+            background-color: #2563eb;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+            color: #6b7280;
+            font-size: 12px;
+        }
+        .highlight {
+            background-color: #fef3c7;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+            border-left: 4px solid #f59e0b;
+        }
+        .success {
+            background-color: #d1fae5;
+            color: #065f46;
+            border-left: 4px solid #10b981;
+        }
+        .info {
+            background-color: #dbeafe;
+            color: #1e40af;
+            border-left: 4px solid #3b82f6;
+        }
+        .amount {
+            font-size: 24px;
+            font-weight: bold;
+            color: #059669;
+        }
+        .receipt {
+            font-family: monospace;
+            background-color: #f3f4f6;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        @media only screen and (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            .email-container {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <div class="logo">📊 SurveyEarn</div>
+            <div class="tagline">Earn Money Through Surveys</div>
+        </div>
+
+        <div class="content">
+            {% block content %}
+            <!-- Email content goes here -->
+            {% endblock %}
+        </div>
+
+        <div class="footer">
+            <p>
+                <strong>SurveyEarn Platform</strong><br>
+                Nairobi, Kenya<br>
+                <a href="mailto:support@surveyearn.com" style="color: #3b82f6;">support@surveyearn.com</a>
+            </p>
+            <p>
+                You received this email because you have an account with SurveyEarn.<br>
+                If you no longer wish to receive these emails, please contact support.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

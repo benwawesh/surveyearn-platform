@@ -1,0 +1,798 @@
+{% extends 'accounts/base.html' %}
+{% load static %}
+
+{% block title %}Withdrawals - SurveyEarn{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Page Header -->
+        <div class="mb-8">
+            <div class="sm:flex sm:items-center sm:justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">Withdrawals</h1>
+                    <p class="mt-2 text-gray-600">Withdraw your earnings to M-Pesa or bank account</p>
+                </div>
+                <div class="mt-4 sm:mt-0">
+                    <button onclick="openWithdrawModal()" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 font-medium">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        New Withdrawal
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Balance & Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-sm font-medium text-gray-500">Available Balance</h3>
+                        <p class="text-2xl font-bold text-gray-900">KSh {{ user.balance|floatformat:2 }}</p>
+                        {% if user.can_withdraw %}
+                            <p class="text-xs text-green-600 mt-1">Ready to withdraw</p>
+                        {% else %}
+                            <p class="text-xs text-orange-600 mt-1">Minimum KSh {{ minimum_withdrawal|default:"10.00" }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-sm font-medium text-gray-500">Total Withdrawn</h3>
+                        <p class="text-2xl font-bold text-gray-900">KSh {{ total_withdrawn|floatformat:2|default:"0.00" }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-sm font-medium text-gray-500">Pending</h3>
+                        <p class="text-2xl font-bold text-gray-900">KSh {{ pending_withdrawals|floatformat:2|default:"0.00" }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-sm font-medium text-gray-500">This Month</h3>
+                        <p class="text-2xl font-bold text-gray-900">KSh {{ monthly_withdrawn|floatformat:2|default:"0.00" }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Methods -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-medium text-gray-900">Payment Methods</h3>
+                    <button onclick="openPaymentMethodModal()" class="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                        + Add New Method
+                    </button>
+                </div>
+            </div>
+            <div class="p-6">
+                {% if payment_methods %}
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {% for method in payment_methods %}
+                    <div class="border border-gray-200 rounded-lg p-4 {% if method.is_default %}ring-2 ring-blue-500 bg-blue-50{% endif %}">
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-center">
+                                {% if method.method_type == 'mpesa' %}
+                                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                        </svg>
+                                    </div>
+                                {% else %}
+                                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                                        </svg>
+                                    </div>
+                                {% endif %}
+                                <div>
+                                    <h4 class="font-medium text-gray-900">{{ method.get_method_type_display|default:"M-Pesa" }}</h4>
+                                    <p class="text-sm text-gray-500">
+                                        {% if method.method_type == 'mpesa' %}
+                                            {{ method.account_number|default:"254712345678" }}
+                                        {% else %}
+                                            •••• •••• •••• {{ method.account_number|slice:"-4:"|default:"1234" }}
+                                        {% endif %}
+                                    </p>
+                                    {% if method.is_default %}
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mt-1">
+                                            Default
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                {% if not method.is_default %}
+                                    <button onclick="setDefaultPaymentMethod('{{ method.id }}')" class="text-gray-400 hover:text-blue-600 text-sm">
+                                        Set Default
+                                    </button>
+                                {% endif %}
+                                <button onclick="deletePaymentMethod('{{ method.id }}')" class="text-gray-400 hover:text-red-600">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-8">
+                    <div class="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                        <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                        </svg>
+                    </div>
+                    <h4 class="text-lg font-medium text-gray-900 mb-2">No payment methods</h4>
+                    <p class="text-gray-600 mb-4">Add a payment method to start withdrawing your earnings</p>
+                    <button onclick="openPaymentMethodModal()" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        Add Payment Method
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Withdrawal History -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-medium text-gray-900">Withdrawal History</h3>
+                    <div class="flex items-center space-x-4">
+                        <select class="text-sm border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" onchange="filterWithdrawals(this.value)">
+                            <option value="">All Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="processing">Processing</option>
+                            <option value="completed">Completed</option>
+                            <option value="failed">Failed</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            {% if withdrawal_requests %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Method</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for withdrawal in withdrawal_requests %}
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {{ withdrawal.created_at|date:"M d, Y"|default:"Jan 15, 2025" }}
+                                <div class="text-xs text-gray-500">{{ withdrawal.created_at|time:"H:i"|default:"14:30" }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                KSh {{ withdrawal.amount|floatformat:2|default:"100.00" }}
+                                {% if withdrawal.fee %}
+                                    <div class="text-xs text-gray-500">Fee: KSh {{ withdrawal.fee|floatformat:2 }}</div>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                <div class="flex items-center">
+                                    <div class="w-6 h-6 bg-green-100 rounded flex items-center justify-center mr-2">
+                                        <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium">M-Pesa</div>
+                                        <div class="text-xs text-gray-500">{{ withdrawal.account_number|default:"254712345678" }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if withdrawal.status == 'pending' or not withdrawal.status %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Pending
+                                    </span>
+                                {% elif withdrawal.status == 'processing' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                        <svg class="w-3 h-3 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Processing
+                                    </span>
+                                {% elif withdrawal.status == 'completed' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Completed
+                                    </span>
+                                {% elif withdrawal.status == 'failed' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Failed
+                                    </span>
+                                {% endif %}
+                                {% if withdrawal.completed_at %}
+                                    <div class="text-xs text-gray-500 mt-1">{{ withdrawal.completed_at|date:"M d, Y" }}</div>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <div class="flex items-center space-x-2">
+                                    <button onclick="viewWithdrawalDetails('{{ withdrawal.id }}')" class="text-blue-600 hover:text-blue-700">
+                                        View
+                                    </button>
+                                    {% if withdrawal.status == 'pending' or not withdrawal.status %}
+                                        <button onclick="cancelWithdrawal('{{ withdrawal.id }}')" class="text-red-600 hover:text-red-700">
+                                            Cancel
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-12 text-center">
+                <div class="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                    <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No withdrawals yet</h3>
+                <p class="text-gray-600 mb-6">Start earning and withdraw your money anytime</p>
+                {% if user.can_withdraw %}
+                    <button onclick="openWithdrawModal()" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        Make Your First Withdrawal
+                    </button>
+                {% else %}
+                    <a href="{% url 'accounts:dashboard' %}" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                        Start Earning
+                    </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- New Withdrawal Modal -->
+<div id="withdrawModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-2/3 lg:w-1/2 shadow-lg rounded-lg bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-medium text-gray-900">New Withdrawal Request</h3>
+                <button class="text-gray-400 hover:text-gray-600" onclick="closeWithdrawModal()">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <form id="withdrawalForm" method="post" action="{% url 'accounts:request_withdrawal' %}">
+                {% csrf_token %}
+                <div class="space-y-6">
+                    <!-- Available Balance -->
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                            </svg>
+                            <span class="text-green-800 font-medium">Available Balance: KSh {{ user.balance|floatformat:2 }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Amount -->
+                    <div>
+                        <label for="amount" class="block text-sm font-medium text-gray-700 mb-2">Withdrawal Amount</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span class="text-gray-500 sm:text-sm">KSh</span>
+                            </div>
+                            <input type="number" 
+                                   id="amount" 
+                                   name="amount" 
+                                   min="{{ minimum_withdrawal|default:10 }}" 
+                                   max="{{ user.balance }}" 
+                                   step="0.01" 
+                                   class="w-full pl-12 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
+                                   placeholder="0.00"
+                                   oninput="calculateFee(this.value)">
+                        </div>
+                        <p class="mt-1 text-sm text-gray-500">Minimum withdrawal: KSh {{ minimum_withdrawal|default:10 }}</p>
+                    </div>
+
+                    <!-- Payment Method -->
+                    <div>
+                        <label for="payment_method" class="block text-sm font-medium text-gray-700 mb-2">Payment Method</label>
+                        <select id="payment_method" name="payment_method" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" required>
+                            <option value="">Select payment method</option>
+                            {% for method in payment_methods %}
+                            <option value="{{ method.id }}" {% if method.is_default %}selected{% endif %}>
+                                {{ method.get_method_type_display|default:"M-Pesa" }} - 
+                                {% if method.method_type == 'mpesa' %}
+                                    {{ method.account_number|default:"254712345678" }}
+                                {% else %}
+                                    •••• {{ method.account_number|slice:"-4:"|default:"1234" }}
+                                {% endif %}
+                                {% if method.is_default %} (Default){% endif %}
+                            </option>
+                            {% empty %}
+                            <option value="">No payment methods available</option>
+                            {% endfor %}
+                        </select>
+                        {% if not payment_methods %}
+                        <p class="mt-1 text-sm text-red-600">Please add a payment method first</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Fee Calculation -->
+                    <div id="feeCalculation" class="bg-gray-50 border border-gray-200 rounded-lg p-4 hidden">
+                        <h4 class="text-sm font-medium text-gray-900 mb-2">Transaction Summary</h4>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Withdrawal Amount:</span>
+                                <span class="font-medium" id="withdrawAmount">KSh 0.00</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Processing Fee:</span>
+                                <span class="font-medium" id="processingFee">KSh 0.00</span>
+                            </div>
+                            <div class="border-t border-gray-300 pt-2 flex justify-between">
+                                <span class="font-medium text-gray-900">You'll Receive:</span>
+                                <span class="font-bold text-green-600" id="finalAmount">KSh 0.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div>
+                        <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">Notes (Optional)</label>
+                        <textarea id="notes" 
+                                  name="notes" 
+                                  rows="3" 
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
+                                  placeholder="Any additional notes..."></textarea>
+                    </div>
+
+                    <!-- Terms -->
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                            <input id="agree_terms" 
+                                   name="agree_terms" 
+                                   type="checkbox" 
+                                   class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2" 
+                                   required>
+                        </div>
+                        <div class="ml-3 text-sm">
+                            <label for="agree_terms" class="text-gray-700">
+                                I agree to the <a href="#" class="text-blue-600 hover:text-blue-500">withdrawal terms</a> and understand that processing may take 1-3 business days.
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end mt-8 space-x-3">
+                    <button type="button" onclick="closeWithdrawModal()" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" 
+                            id="submitWithdrawal"
+                            class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                            {% if not payment_methods or not user.can_withdraw %}disabled{% endif %}>
+                        <span class="flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                            </svg>
+                            Request Withdrawal
+                        </span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Method Modal -->
+<div id="paymentMethodModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-2/3 lg:w-1/2 shadow-lg rounded-lg bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-medium text-gray-900">Add Payment Method</h3>
+                <button class="text-gray-400 hover:text-gray-600" onclick="closePaymentMethodModal()">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <form id="paymentMethodForm" method="post" action="{% url 'payments:add_payment_method' %}">
+                {% csrf_token %}
+                <div class="space-y-6">
+                    <!-- Method Type -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-3">Payment Method Type</label>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <label class="relative flex cursor-pointer rounded-lg border bg-white p-4 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2">
+                                <input type="radio" name="method_type" value="mpesa" class="sr-only" onchange="toggleMethodFields('mpesa')">
+                                <div class="flex flex-1 items-center">
+                                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-sm font-medium text-gray-900">M-Pesa</h3>
+                                        <p class="text-sm text-gray-500">Mobile money transfer</p>
+                                    </div>
+                                </div>
+                            </label>
+                            
+                            <label class="relative flex cursor-pointer rounded-lg border bg-white p-4 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2">
+                                <input type="radio" name="method_type" value="bank_account" class="sr-only" onchange="toggleMethodFields('bank_account')">
+                                <div class="flex flex-1 items-center">
+                                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-sm font-medium text-gray-900">Bank Account</h3>
+                                        <p class="text-sm text-gray-500">Bank transfer</p>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- M-Pesa Fields -->
+                    <div id="mpesaFields" class="hidden space-y-4">
+                        <div>
+                            <label for="mpesa_number" class="block text-sm font-medium text-gray-700 mb-2">M-Pesa Number</label>
+                            <input type="tel" 
+                                   id="mpesa_number" 
+                                   name="mpesa_number" 
+                                   placeholder="254712345678" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                            <p class="mt-1 text-xs text-gray-500">Enter your M-Pesa registered phone number</p>
+                        </div>
+                        
+                        <div>
+                            <label for="mpesa_name" class="block text-sm font-medium text-gray-700 mb-2">Account Name</label>
+                            <input type="text" 
+                                   id="mpesa_name" 
+                                   name="mpesa_name" 
+                                   placeholder="Full name as registered with M-Pesa" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                        </div>
+                    </div>
+
+                    <!-- Bank Account Fields -->
+                    <div id="bankFields" class="hidden space-y-4">
+                        <div>
+                            <label for="bank_name" class="block text-sm font-medium text-gray-700 mb-2">Bank Name</label>
+                            <select id="bank_name" 
+                                    name="bank_name" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                                <option value="">Select your bank</option>
+                                <option value="equity">Equity Bank</option>
+                                <option value="kcb">KCB Bank</option>
+                                <option value="cooperative">Co-operative Bank</option>
+                                <option value="absa">Absa Bank</option>
+                                <option value="standard_chartered">Standard Chartered</option>
+                                <option value="dtb">Diamond Trust Bank</option>
+                                <option value="family">Family Bank</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="account_number" class="block text-sm font-medium text-gray-700 mb-2">Account Number</label>
+                            <input type="text" 
+                                   id="account_number" 
+                                   name="account_number" 
+                                   placeholder="Your bank account number" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                        </div>
+                        
+                        <div>
+                            <label for="account_name" class="block text-sm font-medium text-gray-700 mb-2">Account Holder Name</label>
+                            <input type="text" 
+                                   id="account_name" 
+                                   name="account_name" 
+                                   placeholder="Full name as on bank account" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                        </div>
+                    </div>
+
+                    <!-- Set as Default -->
+                    <div class="flex items-center">
+                        <input id="set_default" 
+                               name="set_default" 
+                               type="checkbox" 
+                               class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2">
+                        <label for="set_default" class="ml-2 text-sm text-gray-700">
+                            Set as default payment method
+                        </label>
+                    </div>
+                </div>
+
+                <div class="flex justify-end mt-8 space-x-3">
+                    <button type="button" onclick="closePaymentMethodModal()" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 font-medium">
+                        Add Payment Method
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Modal management
+function openWithdrawModal() {
+    {% if not user.can_withdraw %}
+        alert('Minimum withdrawal amount is KSh {{ minimum_withdrawal|default:10 }}. Your current balance is KSh {{ user.balance|floatformat:2 }}');
+        return;
+    {% endif %}
+    {% if not payment_methods %}
+        alert('Please add a payment method first');
+        openPaymentMethodModal();
+        return;
+    {% endif %}
+    document.getElementById('withdrawModal').classList.remove('hidden');
+}
+
+function closeWithdrawModal() {
+    document.getElementById('withdrawModal').classList.add('hidden');
+    document.getElementById('withdrawalForm').reset();
+    document.getElementById('feeCalculation').classList.add('hidden');
+}
+
+function openPaymentMethodModal() {
+    document.getElementById('paymentMethodModal').classList.remove('hidden');
+}
+
+function closePaymentMethodModal() {
+    document.getElementById('paymentMethodModal').classList.add('hidden');
+    document.getElementById('paymentMethodForm').reset();
+    document.querySelectorAll('#mpesaFields, #bankFields').forEach(el => el.classList.add('hidden'));
+}
+
+// Payment method type toggle
+function toggleMethodFields(type) {
+    document.getElementById('mpesaFields').classList.add('hidden');
+    document.getElementById('bankFields').classList.add('hidden');
+    
+    if (type === 'mpesa') {
+        document.getElementById('mpesaFields').classList.remove('hidden');
+    } else if (type === 'bank_account') {
+        document.getElementById('bankFields').classList.remove('hidden');
+    }
+}
+
+// Fee calculation
+function calculateFee(amount) {
+    if (!amount || amount <= 0) {
+        document.getElementById('feeCalculation').classList.add('hidden');
+        return;
+    }
+    
+    const withdrawAmount = parseFloat(amount);
+    const fee = Math.max(5, withdrawAmount * 0.01); // 1% fee, minimum KSh 5
+    const finalAmount = withdrawAmount - fee;
+    
+    document.getElementById('withdrawAmount').textContent = `KSh ${withdrawAmount.toFixed(2)}`;
+    document.getElementById('processingFee').textContent = `KSh ${fee.toFixed(2)}`;
+    document.getElementById('finalAmount').textContent = `KSh ${finalAmount.toFixed(2)}`;
+    document.getElementById('feeCalculation').classList.remove('hidden');
+}
+
+// Payment method management
+function setDefaultPaymentMethod(methodId) {
+    if (confirm('Set this as your default payment method?')) {
+        // AJAX call to set default
+        fetch(`/payments/methods/${methodId}/set-default/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Failed to update default payment method');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+        });
+    }
+}
+
+function deletePaymentMethod(methodId) {
+    if (confirm('Are you sure you want to delete this payment method?')) {
+        // AJAX call to delete
+        fetch(`/payments/methods/${methodId}/delete/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Failed to delete payment method');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+        });
+    }
+}
+
+// Withdrawal management
+function viewWithdrawalDetails(withdrawalId) {
+    // Open details modal or navigate to details page
+    window.location.href = `/payments/withdrawals/${withdrawalId}/`;
+}
+
+function cancelWithdrawal(withdrawalId) {
+    if (confirm('Are you sure you want to cancel this withdrawal request?')) {
+        fetch(`/payments/withdrawals/${withdrawalId}/cancel/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Failed to cancel withdrawal');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+        });
+    }
+}
+
+function filterWithdrawals(status) {
+    const url = new URL(window.location);
+    if (status) {
+        url.searchParams.set('status', status);
+    } else {
+        url.searchParams.delete('status');
+    }
+    window.location.href = url.toString();
+}
+
+// Close modals when clicking outside
+document.addEventListener('click', function(e) {
+    if (e.target.id === 'withdrawModal') {
+        closeWithdrawModal();
+    }
+    if (e.target.id === 'paymentMethodModal') {
+        closePaymentMethodModal();
+    }
+});
+
+// Form validation
+document.getElementById('withdrawalForm').addEventListener('submit', function(e) {
+    const amount = parseFloat(document.getElementById('amount').value);
+    const balance = {{ user.balance|default:0 }};
+    const minWithdrawal = {{ minimum_withdrawal|default:10 }};
+    
+    if (amount < minWithdrawal) {
+        e.preventDefault();
+        alert(`Minimum withdrawal amount is KSh ${minWithdrawal.toFixed(2)}`);
+        return;
+    }
+    
+    if (amount > balance) {
+        e.preventDefault();
+        alert('Withdrawal amount exceeds available balance');
+        return;
+    }
+    
+    // Show loading state
+    const submitBtn = document.getElementById('submitWithdrawal');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `
+        <span class="flex items-center">
+            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Processing...
+        </span>
+    `;
+});
+
+// Auto-format phone number for M-Pesa
+document.getElementById('mpesa_number').addEventListener('input', function(e) {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.startsWith('0')) {
+        value = '254' + value.substring(1);
+    } else if (!value.startsWith('254')) {
+        if (value.length > 0) {
+            value = '254' + value;
+        }
+    }
+    e.target.value = value;
+});
+</script>
+{% endblock %}

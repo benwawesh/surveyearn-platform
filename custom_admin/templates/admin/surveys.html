@@ -1,0 +1,303 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Survey Management{% endblock %}
+
+{% block content %}
+<div class="flex-1 p-6">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Survey Management</h1>
+                <p class="text-gray-600 mt-1">Create and manage platform surveys</p>
+            </div>
+            <a href="{% url 'custom_admin:survey_create' %}" 
+               class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                <i class="fas fa-plus mr-2"></i>Create Survey
+            </a>
+        </div>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="bg-white rounded-lg shadow-sm border mb-6 p-4">
+        <form method="get" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <!-- Search -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Search</label>
+                    <input type="text" name="search" value="{{ search_query }}" 
+                           placeholder="Search surveys..."
+                           class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <!-- Status Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">All Statuses</option>
+                        <option value="draft" {% if status_filter == 'draft' %}selected{% endif %}>Draft</option>
+                        <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+                        <option value="paused" {% if status_filter == 'paused' %}selected{% endif %}>Paused</option>
+                        <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+                        <option value="closed" {% if status_filter == 'closed' %}selected{% endif %}>Closed</option>
+                    </select>
+                </div>
+                
+                <!-- Payout Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Payout Range</label>
+                    <select name="payout" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">All Payouts</option>
+                        <option value="0-5" {% if payout_filter == '0-5' %}selected{% endif %}>KSh 0-5</option>
+                        <option value="5-10" {% if payout_filter == '5-10' %}selected{% endif %}>KSh 5-10</option>
+                        <option value="10-20" {% if payout_filter == '10-20' %}selected{% endif %}>KSh 10-20</option>
+                        <option value="20+" {% if payout_filter == '20+' %}selected{% endif %}>KSh 20+</option>
+                    </select>
+                </div>
+                
+                <!-- Filter Button -->
+                <div class="flex items-end">
+                    <button type="submit" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 mr-2">
+                        <i class="fas fa-filter mr-1"></i>Filter
+                    </button>
+                    <a href="{% url 'custom_admin:surveys' %}" class="bg-gray-300 text-gray-700 px-3 py-2 rounded hover:bg-gray-400">
+                        Clear
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Surveys List -->
+    <div class="bg-white rounded-lg shadow-sm border">
+        <div class="p-4 border-b">
+            <h2 class="text-lg font-semibold text-gray-900">
+                Surveys ({{ surveys.paginator.count }})
+            </h2>
+        </div>
+        
+        {% if surveys %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Survey Details
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Status
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Payout
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Responses
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Questions
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Created
+                            </th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Actions
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for survey in surveys %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4">
+                                <div>
+                                    <h3 class="text-sm font-medium text-gray-900">
+                                        <a href="{% url 'custom_admin:survey_detail' survey.id %}" 
+                                           class="text-blue-600 hover:text-blue-800">
+                                            {{ survey.title }}
+                                        </a>
+                                    </h3>
+                                    {% if survey.description %}
+                                        <p class="text-sm text-gray-500 mt-1">
+                                            {{ survey.description|truncatechars:100 }}
+                                        </p>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full
+                                    {% if survey.status == 'active' %}bg-green-100 text-green-800
+                                    {% elif survey.status == 'draft' %}bg-gray-100 text-gray-800
+                                    {% elif survey.status == 'paused' %}bg-yellow-100 text-yellow-800
+                                    {% elif survey.status == 'completed' %}bg-blue-100 text-blue-800
+                                    {% else %}bg-red-100 text-red-800{% endif %}">
+                                    {{ survey.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="text-sm font-medium text-gray-900">KSh {{ survey.payout }}</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">{{ survey.total_responses|default:0 }}</div>
+                                {% if survey.max_responses %}
+                                    <div class="text-xs text-gray-500">/ {{ survey.max_responses }} max</div>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">{{ survey.questions.count }}</div>
+                                <div class="text-xs text-gray-500">questions</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">{{ survey.created_at|date:"M d, Y" }}</div>
+                                <div class="text-xs text-gray-500">{{ survey.created_at|time:"H:i" }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <div class="flex items-center justify-end space-x-2">
+                                    <!-- View -->
+                                    <a href="{% url 'custom_admin:survey_detail' survey.id %}" 
+                                       class="text-blue-600 hover:text-blue-800" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    
+                                    <!-- Questions -->
+                                    <a href="{% url 'custom_admin:survey_questions' survey.id %}" 
+                                       class="text-green-600 hover:text-green-800" title="Manage Questions">
+                                        <i class="fas fa-question-circle"></i>
+                                    </a>
+                                    
+                                    <!-- Edit -->
+                                    <a href="{% url 'custom_admin:survey_edit' survey.id %}" 
+                                       class="text-yellow-600 hover:text-yellow-800" title="Edit Survey">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    
+                                    <!-- Status Toggle -->
+                                    {% if survey.status == 'draft' or survey.status == 'paused' %}
+                                        <a href="{% url 'custom_admin:activate_survey' survey.id %}" 
+                                           class="text-green-600 hover:text-green-800" title="Activate Survey"
+                                           onclick="return confirm('Activate this survey?')">
+                                            <i class="fas fa-play"></i>
+                                        </a>
+                                    {% elif survey.status == 'active' %}
+                                        <a href="{% url 'custom_admin:pause_survey' survey.id %}" 
+                                           class="text-yellow-600 hover:text-yellow-800" title="Pause Survey"
+                                           onclick="return confirm('Pause this survey?')">
+                                            <i class="fas fa-pause"></i>
+                                        </a>
+                                    {% endif %}
+                                    
+                                    <!-- Delete -->
+                                    <a href="{% url 'custom_admin:survey_delete' survey.id %}" 
+                                       class="text-red-600 hover:text-red-800" title="Delete Survey">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if surveys.has_other_pages %}
+                <div class="px-6 py-3 border-t border-gray-200 bg-gray-50">
+                    <div class="flex items-center justify-between">
+                        <div class="text-sm text-gray-700">
+                            Showing {{ surveys.start_index }} to {{ surveys.end_index }} of {{ surveys.paginator.count }} results
+                        </div>
+                        <div class="flex space-x-2">
+                            {% if surveys.has_previous %}
+                                <a href="?page={{ surveys.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if payout_filter %}&payout={{ payout_filter }}{% endif %}" 
+                                   class="px-3 py-1 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50">
+                                    Previous
+                                </a>
+                            {% endif %}
+                            
+                            <span class="px-3 py-1 text-sm bg-blue-500 text-white rounded">
+                                Page {{ surveys.number }} of {{ surveys.paginator.num_pages }}
+                            </span>
+                            
+                            {% if surveys.has_next %}
+                                <a href="?page={{ surveys.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if payout_filter %}&payout={{ payout_filter }}{% endif %}" 
+                                   class="px-3 py-1 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50">
+                                    Next
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="p-8 text-center">
+                <div class="text-gray-400 mb-4">
+                    <i class="fas fa-clipboard-list text-4xl"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No surveys found</h3>
+                <p class="text-gray-600 mb-4">
+                    {% if search_query or status_filter or payout_filter %}
+                        No surveys match your current filters. Try adjusting your search criteria.
+                    {% else %}
+                        Start building your survey platform by creating your first survey.
+                    {% endif %}
+                </p>
+                <a href="{% url 'custom_admin:survey_create' %}" 
+                   class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    <i class="fas fa-plus mr-2"></i>Create First Survey
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-lg shadow-sm border p-4">
+            <div class="flex items-center">
+                <div class="p-2 bg-blue-100 rounded-lg">
+                    <i class="fas fa-clipboard-list text-blue-600"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-gray-600">Total Surveys</p>
+                    <p class="text-lg font-semibold text-gray-900">{{ surveys.paginator.count }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-sm border p-4">
+            <div class="flex items-center">
+                <div class="p-2 bg-green-100 rounded-lg">
+                    <i class="fas fa-play text-green-600"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-gray-600">Active Surveys</p>
+                    <p class="text-lg font-semibold text-gray-900">
+                        {% with active_count=surveys|length %}{{ active_count }}{% endwith %}
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-sm border p-4">
+            <div class="flex items-center">
+                <div class="p-2 bg-yellow-100 rounded-lg">
+                    <i class="fas fa-edit text-yellow-600"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-gray-600">Draft Surveys</p>
+                    <p class="text-lg font-semibold text-gray-900">0</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-sm border p-4">
+            <div class="flex items-center">
+                <div class="p-2 bg-purple-100 rounded-lg">
+                    <i class="fas fa-chart-line text-purple-600"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-gray-600">Total Responses</p>
+                    <p class="text-lg font-semibold text-gray-900">0</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

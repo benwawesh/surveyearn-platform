@@ -1,0 +1,84 @@
+<!-- Create: accounts/templates/emails/payment_confirmation.html -->
+{% extends 'emails/base.html' %}
+
+{% block title %}Payment Confirmed - Account Activated{% endblock %}
+
+{% block content %}
+<div class="greeting">
+    Congratulations {{ username }}!
+</div>
+
+<div class="highlight success">
+    <h3 style="margin-top: 0;">Payment Confirmed Successfully</h3>
+    <p>Your M-Pesa payment has been processed and your SurveyEarn account is now fully activated!</p>
+</div>
+
+<h3>Payment Details</h3>
+<div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
+    <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+            <td style="padding: 8px; font-weight: bold;">Amount Paid:</td>
+            <td style="padding: 8px;" class="amount">KSh {{ amount }}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px; font-weight: bold;">Receipt Number:</td>
+            <td style="padding: 8px;" class="receipt">{{ receipt_number }}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px; font-weight: bold;">Payment Date:</td>
+            <td style="padding: 8px;">{{ payment_date|date:"F d, Y g:i A" }}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px; font-weight: bold;">Account Status:</td>
+            <td style="padding: 8px; color: #059669; font-weight: bold;">ACTIVE</td>
+        </tr>
+    </table>
+</div>
+
+<h3>What Happens Next?</h3>
+<p>Now that your account is activated, you can start earning money immediately:</p>
+
+<ol>
+    <li><strong>Browse Available Surveys:</strong> Check out surveys that match your profile</li>
+    <li><strong>Complete Surveys:</strong> Provide thoughtful responses to earn money</li>
+    <li><strong>Track Earnings:</strong> Monitor your progress and accumulated earnings</li>
+    <li><strong>Request Payouts:</strong> Withdraw your earnings when you reach minimum thresholds</li>
+</ol>
+
+<div class="highlight info">
+    <h4>Earning Tips:</h4>
+    <ul>
+        <li>Complete your profile thoroughly for better survey matching</li>
+        <li>Check the platform daily for new survey opportunities</li>
+        <li>Provide honest and detailed responses</li>
+        <li>Complete surveys promptly to avoid expiration</li>
+    </ul>
+</div>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{{ site_url }}/accounts/surveys/" class="button">
+        Start Taking Surveys Now
+    </a>
+</div>
+
+<h3>Account Security</h3>
+<p>To keep your account secure:</p>
+<ul>
+    <li>Never share your login credentials with anyone</li>
+    <li>Log out after each session on shared devices</li>
+    <li>Contact support immediately if you notice suspicious activity</li>
+</ul>
+
+<h3>Support & Contact</h3>
+<p>Need help getting started or have questions about earning?</p>
+<ul>
+    <li>Email: <a href="mailto:support@surveyearn.com">support@surveyearn.com</a></li>
+    <li>Response time: Within 24 hours</li>
+    <li>Support hours: Monday - Friday, 8AM - 6PM EAT</li>
+</ul>
+
+<p>Thank you for choosing SurveyEarn. We're excited to help you start earning through surveys!</p>
+
+<p>Best regards,<br>
+<strong>The SurveyEarn Team</strong></p>
+{% endblock %}

@@ -1,0 +1,546 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Reports & Analytics{% endblock %}
+
+{% block content %}
+<div class="flex-1 p-6">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Reports & Analytics</h1>
+                <p class="text-gray-600 mt-1">Comprehensive platform performance and insights</p>
+            </div>
+            <div class="flex space-x-2">
+                <select id="dateRangeSelector" class="px-3 py-2 border border-gray-300 rounded text-sm">
+                    <option value="7">Last 7 Days</option>
+                    <option value="30" selected>Last 30 Days</option>
+                    <option value="90">Last 90 Days</option>
+                    <option value="365">Last Year</option>
+                    <option value="custom">Custom Range</option>
+                </select>
+                <button class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-sm" onclick="refreshReports()">
+                    <i class="fas fa-sync mr-2"></i>Refresh
+                </button>
+                <div class="relative">
+                    <button class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 text-sm" onclick="toggleExportMenu()">
+                        <i class="fas fa-download mr-2"></i>Export
+                    </button>
+                    <div id="exportMenu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10">
+                        <a href="{% url 'custom_admin:export_reports' %}?type=financial" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            <i class="fas fa-chart-line mr-2"></i>Financial Report
+                        </a>
+                        <a href="{% url 'custom_admin:export_reports' %}?type=users" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            <i class="fas fa-users mr-2"></i>User Analytics
+                        </a>
+                        <a href="{% url 'custom_admin:export_reports' %}?type=surveys" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            <i class="fas fa-poll mr-2"></i>Survey Performance
+                        </a>
+                        <a href="{% url 'custom_admin:export_reports' %}?type=transactions" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            <i class="fas fa-exchange-alt mr-2"></i>Transactions
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI Dashboard -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 mb-8">
+        <!-- Financial KPIs -->
+        <div class="bg-white rounded-lg shadow-sm border p-4">
+            <div class="flex items-center">
+                <div class="p-2 bg-green-100 rounded-lg">
+                    <i class="fas fa-chart-line text-green-600"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-xs text-gray-600">Total Revenue</p>
+                    <p class="text-lg font-semibold text-gray-900">KSh {{ financial.total_revenue|default:"0.00"|floatformat:0 }}</p>
+                    <p class="text-xs text-green-600">+{{ financial.revenue_growth|default:0 }}% this month</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border p-4">
+            <div class="flex items-center">
+                <div class="p-2 bg-blue-100 rounded-lg">
+                    <i class="fas fa-money-bill-wave text-blue-600"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-xs text-gray-600">Total Payouts</p>
+                    <p class="text-lg font-semibold text-gray-900">KSh {{ financial.total_payouts|default:"0.00"|floatformat:0 }}</p>
+                    <p class="text-xs text-blue-600">{{ financial.pending_payouts|default:0 }} pending</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border p-4">
+            <div class="flex items-center">
+                <div class="p-2 bg-purple-100 rounded-lg">
+                    <i class="fas fa-percentage text-purple-600"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-xs text-gray-600">Profit Margin</p>
+                    <p class="text-lg font-semibold text-gray-900">{{ financial.profit_margin|default:0 }}%</p>
+                    <p class="text-xs text-purple-600">KSh {{ financial.net_profit|default:"0.00"|floatformat:0 }} profit</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- User KPIs -->
+        <div class="bg-white rounded-lg shadow-sm border p-4">
+            <div class="flex items-center">
+                <div class="p-2 bg-orange-100 rounded-lg">
+                    <i class="fas fa-users text-orange-600"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-xs text-gray-600">Active Users</p>
+                    <p class="text-lg font-semibold text-gray-900">{{ users.active_users|default:0 }}</p>
+                    <p class="text-xs text-orange-600">{{ users.retention_rate|default:0 }}% retention</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border p-4">
+            <div class="flex items-center">
+                <div class="p-2 bg-red-100 rounded-lg">
+                    <i class="fas fa-user-plus text-red-600"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-xs text-gray-600">New Users</p>
+                    <p class="text-lg font-semibold text-gray-900">{{ users.new_users|default:0 }}</p>
+                    <p class="text-xs text-red-600">{{ users.growth_rate|default:0 }}% growth</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Survey KPIs -->
+        <div class="bg-white rounded-lg shadow-sm border p-4">
+            <div class="flex items-center">
+                <div class="p-2 bg-yellow-100 rounded-lg">
+                    <i class="fas fa-poll text-yellow-600"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-xs text-gray-600">Completion Rate</p>
+                    <p class="text-lg font-semibold text-gray-900">{{ surveys.completion_rate|default:0 }}%</p>
+                    <p class="text-xs text-yellow-600">{{ surveys.total_completions|default:0 }} completed</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
+        <!-- Revenue Trends -->
+        <div class="bg-white rounded-lg shadow-sm border p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Revenue Trends</h3>
+            <div class="relative h-64">
+                <canvas id="revenueChart"></canvas>
+            </div>
+        </div>
+
+        <!-- User Growth -->
+        <div class="bg-white rounded-lg shadow-sm border p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">User Growth</h3>
+            <div class="relative h-64">
+                <canvas id="userGrowthChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Transaction Breakdown -->
+        <div class="bg-white rounded-lg shadow-sm border p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Transaction Types</h3>
+            <div class="relative h-64">
+                <canvas id="transactionChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional Analytics Charts -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <!-- Survey Completion Heatmap -->
+        <div class="bg-white rounded-lg shadow-sm border p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Activity Heatmap (Hours)</h3>
+            <div class="grid grid-cols-24 gap-1">
+                {% for hour in activity_heatmap %}
+                <div class="h-8 rounded text-xs flex items-center justify-center text-white font-medium"
+                     style="background-color: rgba(59, 130, 246, {{ hour.intensity }})">
+                    {{ hour.hour }}
+                </div>
+                {% endfor %}
+            </div>
+            <div class="flex justify-between text-xs text-gray-500 mt-2">
+                <span>12 AM</span>
+                <span>6 AM</span>
+                <span>12 PM</span>
+                <span>6 PM</span>
+                <span>11 PM</span>
+            </div>
+        </div>
+
+        <!-- Geographic Distribution -->
+        <div class="bg-white rounded-lg shadow-sm border p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">User Distribution (Kenya)</h3>
+            <div class="space-y-3">
+                {% for region in geographic_data %}
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 rounded-full mr-3" style="background-color: {{ region.color }}"></div>
+                        <span class="text-sm text-gray-700">{{ region.location }}</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-sm font-medium text-gray-900">{{ region.count }}</span>
+                        <span class="text-xs text-gray-500">({{ region.percentage }}%)</span>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center text-gray-500 py-8">
+                    <i class="fas fa-map-marker-alt text-3xl mb-2"></i>
+                    <p>No location data available</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Analytics Tables -->
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
+        <!-- Survey Performance Analytics -->
+        <div class="bg-white rounded-lg shadow-sm border overflow-hidden">
+            <div class="p-4 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-semibold text-gray-900">Survey Performance</h3>
+                    <button class="text-sm text-blue-600 hover:text-blue-800">View All</button>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Survey</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Responses</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Completion %</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avg Time</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ROI</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for survey in survey_performance %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3">
+                                <div class="text-sm font-medium text-gray-900">{{ survey.title|truncatechars:30 }}</div>
+                                <div class="text-xs text-gray-500">{{ survey.created_at|date:"M d" }}</div>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-900">{{ survey.response_count }}</td>
+                            <td class="px-4 py-3">
+                                <div class="flex items-center">
+                                    <div class="w-full bg-gray-200 rounded-full h-2 mr-2">
+                                        <div class="bg-green-600 h-2 rounded-full" style="width: {{ survey.completion_rate }}%"></div>
+                                    </div>
+                                    <span class="text-sm text-gray-900">{{ survey.completion_rate }}%</span>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-900">{{ survey.avg_completion_time }}</td>
+                            <td class="px-4 py-3">
+                                <span class="text-sm font-medium {% if survey.roi > 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                                    {{ survey.roi }}%
+                                </span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="px-4 py-8 text-center text-gray-500">No survey data available</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- User Behavior Analytics -->
+        <div class="bg-white rounded-lg shadow-sm border overflow-hidden">
+            <div class="p-4 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-semibold text-gray-900">User Behavior Insights</h3>
+                    <button class="text-sm text-blue-600 hover:text-blue-800">View Details</button>
+                </div>
+            </div>
+            <div class="p-4">
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                        <div>
+                            <p class="text-sm font-medium text-gray-900">Average Session Duration</p>
+                            <p class="text-xs text-gray-600">Time spent per visit</p>
+                        </div>
+                        <span class="text-lg font-semibold text-blue-600">{{ user_behavior.avg_session_duration|default:"0m" }}</span>
+                    </div>
+
+                    <div class="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                        <div>
+                            <p class="text-sm font-medium text-gray-900">Surveys per User</p>
+                            <p class="text-xs text-gray-600">Average completions</p>
+                        </div>
+                        <span class="text-lg font-semibold text-green-600">{{ user_behavior.avg_surveys_per_user|default:"0"|floatformat:1 }}</span>
+                    </div>
+
+                    <div class="flex justify-between items-center p-3 bg-yellow-50 rounded-lg">
+                        <div>
+                            <p class="text-sm font-medium text-gray-900">Return Rate</p>
+                            <p class="text-xs text-gray-600">Users who return</p>
+                        </div>
+                        <span class="text-lg font-semibold text-yellow-600">{{ user_behavior.return_rate|default:0 }}%</span>
+                    </div>
+
+                    <div class="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
+                        <div>
+                            <p class="text-sm font-medium text-gray-900">Churn Rate</p>
+                            <p class="text-xs text-gray-600">Inactive users</p>
+                        </div>
+                        <span class="text-lg font-semibold text-purple-600">{{ user_behavior.churn_rate|default:0 }}%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Performers Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <!-- Top Earning Users -->
+        <div class="bg-white rounded-lg shadow-sm border overflow-hidden">
+            <div class="p-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">Top Earners</h3>
+            </div>
+            <div class="divide-y divide-gray-200">
+                {% for user in top_earners %}
+                <div class="p-4 flex items-center justify-between hover:bg-gray-50">
+                    <div class="flex items-center">
+                        <div class="h-8 w-8 bg-green-500 rounded-full flex items-center justify-center">
+                            <span class="text-white font-medium text-xs">{{ user.username.0|upper }}</span>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm font-medium text-gray-900">{{ user.username }}</p>
+                            <p class="text-xs text-gray-500">{{ user.surveys_completed }} surveys</p>
+                        </div>
+                    </div>
+                    <span class="text-sm font-semibold text-green-600">KSh {{ user.total_earnings|floatformat:0 }}</span>
+                </div>
+                {% empty %}
+                <div class="p-8 text-center text-gray-500">
+                    <i class="fas fa-trophy text-3xl mb-2"></i>
+                    <p>No top earners yet</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Most Active Users -->
+        <div class="bg-white rounded-lg shadow-sm border overflow-hidden">
+            <div class="p-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">Most Active Users</h3>
+            </div>
+            <div class="divide-y divide-gray-200">
+                {% for user in most_active_users %}
+                <div class="p-4 flex items-center justify-between hover:bg-gray-50">
+                    <div class="flex items-center">
+                        <div class="h-8 w-8 bg-blue-500 rounded-full flex items-center justify-center">
+                            <span class="text-white font-medium text-xs">{{ user.username.0|upper }}</span>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm font-medium text-gray-900">{{ user.username }}</p>
+                            <p class="text-xs text-gray-500">Last active: {{ user.last_login|timesince }} ago</p>
+                        </div>
+                    </div>
+                    <span class="text-sm font-semibold text-blue-600">{{ user.login_count }} logins</span>
+                </div>
+                {% empty %}
+                <div class="p-8 text-center text-gray-500">
+                    <i class="fas fa-user-clock text-3xl mb-2"></i>
+                    <p>No active users yet</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Best Performing Surveys -->
+        <div class="bg-white rounded-lg shadow-sm border overflow-hidden">
+            <div class="p-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">Best Surveys</h3>
+            </div>
+            <div class="divide-y divide-gray-200">
+                {% for survey in best_surveys %}
+                <div class="p-4 hover:bg-gray-50">
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="text-sm font-medium text-gray-900">{{ survey.title|truncatechars:25 }}</p>
+                        <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">{{ survey.completion_rate }}%</span>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-500">
+                        <span>{{ survey.response_count }} responses</span>
+                        <span>KSh {{ survey.total_payout|floatformat:0 }} paid</span>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="p-8 text-center text-gray-500">
+                    <i class="fas fa-star text-3xl mb-2"></i>
+                    <p>No survey data yet</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- System Health & Alerts -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Platform Health -->
+        <div class="bg-white rounded-lg shadow-sm border p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Platform Health</h3>
+            <div class="space-y-4">
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-gray-600">System Uptime</span>
+                    <span class="text-sm font-medium text-green-600">99.9%</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-gray-600">Average Response Time</span>
+                    <span class="text-sm font-medium text-blue-600">{{ system_health.avg_response_time|default:"120ms" }}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-gray-600">Database Performance</span>
+                    <span class="text-sm font-medium text-green-600">Excellent</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-gray-600">Error Rate</span>
+                    <span class="text-sm font-medium text-yellow-600">{{ system_health.error_rate|default:"0.1%" }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alerts & Notifications -->
+        <div class="bg-white rounded-lg shadow-sm border p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">System Alerts</h3>
+            <div class="space-y-3">
+                {% for alert in system_alerts %}
+                <div class="flex items-start p-3 rounded-lg {% if alert.level == 'high' %}bg-red-50{% elif alert.level == 'medium' %}bg-yellow-50{% else %}bg-blue-50{% endif %}">
+                    <div class="flex-shrink-0 mt-0.5">
+                        <i class="fas {% if alert.level == 'high' %}fa-exclamation-triangle text-red-500{% elif alert.level == 'medium' %}fa-exclamation-circle text-yellow-500{% else %}fa-info-circle text-blue-500{% endif %}"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-gray-900">{{ alert.title }}</p>
+                        <p class="text-xs text-gray-600">{{ alert.message }}</p>
+                        <p class="text-xs text-gray-500 mt-1">{{ alert.timestamp|timesince }} ago</p>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center text-gray-500 py-8">
+                    <i class="fas fa-check-circle text-3xl text-green-500 mb-2"></i>
+                    <p class="text-sm">All systems operating normally</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Chart configurations
+const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+const revenueChart = new Chart(revenueCtx, {
+    type: 'line',
+    data: {
+        labels: {{ revenue_chart_labels|safe }},
+        datasets: [{
+            label: 'Revenue (KSh)',
+            data: {{ revenue_chart_data|safe }},
+            borderColor: 'rgb(34, 197, 94)',
+            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+            tension: 0.4,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return 'KSh ' + value.toLocaleString();
+                    }
+                }
+            }
+        }
+    }
+});
+
+const userGrowthCtx = document.getElementById('userGrowthChart').getContext('2d');
+const userGrowthChart = new Chart(userGrowthCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ user_growth_labels|safe }},
+        datasets: [{
+            label: 'New Users',
+            data: {{ user_growth_data|safe }},
+            backgroundColor: 'rgba(59, 130, 246, 0.8)',
+            borderColor: 'rgb(59, 130, 246)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+const transactionCtx = document.getElementById('transactionChart').getContext('2d');
+const transactionChart = new Chart(transactionCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Survey Payments', 'Withdrawals', 'Bonuses', 'Adjustments'],
+        datasets: [{
+            data: {{ transaction_breakdown|safe }},
+            backgroundColor: [
+                'rgba(34, 197, 94, 0.8)',
+                'rgba(239, 68, 68, 0.8)',
+                'rgba(168, 85, 247, 0.8)',
+                'rgba(59, 130, 246, 0.8)'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+// Utility functions
+function toggleExportMenu() {
+    const menu = document.getElementById('exportMenu');
+    menu.classList.toggle('hidden');
+}
+
+function refreshReports() {
+    const dateRange = document.getElementById('dateRangeSelector').value;
+    window.location.href = `?range=${dateRange}`;
+}
+
+// Close export menu when clicking outside
+document.addEventListener('click', function(event) {
+    const exportMenu = document.getElementById('exportMenu');
+    const exportButton = event.target.closest('button');
+
+    if (!exportButton || !exportButton.onclick.toString().includes('toggleExportMenu')) {
+        exportMenu.classList.add('hidden');
+    }
+});
+</script>
+{% endblock %}

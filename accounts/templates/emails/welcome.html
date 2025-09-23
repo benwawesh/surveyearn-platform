@@ -1,0 +1,57 @@
+<!-- Create: accounts/templates/emails/welcome.html -->
+{% extends 'emails/base.html' %}
+
+{% block title %}Welcome to SurveyEarn{% endblock %}
+
+{% block content %}
+<div class="greeting">
+    Hello {{ first_name }}! 👋
+</div>
+
+<p>Welcome to <strong>SurveyEarn</strong> - Kenya's premier survey platform where your opinions matter and earn you money!</p>
+
+<div class="highlight success">
+    <h3 style="margin-top: 0;">🎉 Registration Successful!</h3>
+    <p><strong>Username:</strong> {{ username }}</p>
+    <p>Your account has been created successfully. You're now part of our growing community of survey participants earning real money through their valuable opinions.</p>
+</div>
+
+<h3>What's Next?</h3>
+<p>Here's how to get started and maximize your earnings:</p>
+
+<ol>
+    <li><strong>Complete Your Payment:</strong> Pay the one-time registration fee of KSh 500 to activate your account</li>
+    <li><strong>Browse Available Surveys:</strong> Access surveys tailored to your profile</li>
+    <li><strong>Start Earning:</strong> Complete surveys and earn money for each one</li>
+    <li><strong>Track Your Progress:</strong> Monitor your earnings and survey history</li>
+</ol>
+
+<div class="highlight info">
+    <h4>💡 Tips for Success:</h4>
+    <ul>
+        <li>Complete your profile for better survey matching</li>
+        <li>Be honest and thoughtful in your responses</li>
+        <li>Check regularly for new survey opportunities</li>
+        <li>Participate consistently to maximize earnings</li>
+    </ul>
+</div>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{{ site_url }}/accounts/surveys/" class="button">
+        🚀 Start Taking Surveys
+    </a>
+</div>
+
+<h3>Need Help?</h3>
+<p>If you have any questions or need assistance, our support team is here to help:</p>
+<ul>
+    <li>📧 Email: <a href="mailto:support@surveyearn.com">support@surveyearn.com</a></li>
+    <li>📱 WhatsApp: +254 XXX XXX XXX</li>
+    <li>🕒 Support Hours: Monday - Friday, 8AM - 6PM EAT</li>
+</ul>
+
+<p>Thank you for joining SurveyEarn. We're excited to help you turn your opinions into earnings!</p>
+
+<p>Best regards,<br>
+<strong>The SurveyEarn Team</strong></p>
+{% endblock %}

@@ -1,0 +1,416 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}Quiz: {{ tutorial.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.quiz-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.video-quiz-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    align-items: start;
+}
+
+@media (max-width: 768px) {
+    .video-quiz-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .video-section {
+        order: -1;
+    }
+}
+
+.video-container {
+    position: sticky;
+    top: 2rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.video-player {
+    width: 100%;
+    height: 250px;
+    background: #000;
+}
+
+.question-card {
+    transition: all 0.3s ease;
+    border: 2px solid #e5e7eb;
+}
+
+.question-card.current {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.answer-option {
+    transition: all 0.2s ease;
+    cursor: pointer;
+    border: 2px solid #e5e7eb;
+}
+
+.answer-option:hover {
+    border-color: #3b82f6;
+    background-color: #f8fafc;
+}
+
+.answer-option.selected {
+    border-color: #3b82f6;
+    background-color: #dbeafe;
+}
+
+.progress-bar {
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+    transition: width 0.3s ease;
+}
+
+.quiz-timer {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.submit-button {
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    transition: all 0.3s ease;
+}
+
+.submit-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+}
+
+.video-controls {
+    padding: 1rem;
+    background: #f8fafc;
+    border-top: 1px solid #e5e7eb;
+}
+
+.video-info {
+    display: flex;
+    align-items: center;
+    justify-content: between;
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="quiz-container px-4">
+        <!-- Quiz Header -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-800">{{ tutorial.title }} - Quiz</h1>
+                    <p class="text-gray-600">Attempt {{ quiz_attempt.attempt_number }} of {{ tutorial.max_quiz_attempts }}</p>
+                </div>
+                <div class="quiz-timer text-white px-4 py-2 rounded-lg">
+                    <div class="flex items-center">
+                        <i class="fas fa-clock mr-2"></i>
+                        <span id="quiz-timer">00:00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="mb-4">
+                <div class="flex justify-between text-sm text-gray-600 mb-2">
+                    <span>Progress</span>
+                    <span id="progress-text">0 of {{ questions.count }} answered</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-3">
+                    <div id="progress-bar" class="progress-bar h-3 rounded-full" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content: Video + Quiz Side by Side -->
+        <div class="video-quiz-layout">
+            <!-- Video Section (Left Side) -->
+            <div class="video-section">
+                <div class="video-container">
+                    <div class="p-4 border-b border-gray-200">
+                        <h3 class="font-semibold text-gray-800 flex items-center">
+                            <i class="fas fa-play-circle mr-2 text-blue-500"></i>
+                            Tutorial Video
+                        </h3>
+                        <p class="text-sm text-gray-600 mt-1">Reference the video while taking the quiz</p>
+                    </div>
+
+                    <!-- Video Player -->
+                    {% if video_embed_url %}
+                        <iframe id="tutorial-video"
+                                src="{{ video_embed_url }}"
+                                class="video-player"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowfullscreen>
+                        </iframe>
+                    {% elif tutorial.video_source == 'upload' and tutorial.video_file %}
+                        <video id="tutorial-video" controls class="video-player">
+                            <source src="{{ tutorial.video_file.url }}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                    {% else %}
+                        <div class="video-player bg-gray-200 flex items-center justify-center">
+                            <div class="text-center text-gray-500">
+                                <i class="fas fa-video text-3xl mb-2"></i>
+                                <p>Video not available</p>
+                                <p class="text-xs">Source: {{ tutorial.video_source|default:"None" }}</p>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <!-- Video Info -->
+                    <div class="video-controls">
+                        <div class="video-info">
+                            <div class="flex items-center">
+                                <i class="fas fa-clock mr-1"></i>
+                                <span>Duration: {{ tutorial.duration|default:"--:--" }}</span>
+                            </div>
+                            <div class="flex items-center ml-4">
+                                <i class="fas fa-eye mr-1"></i>
+                                <span id="video-status">Ready</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quiz Section (Right Side) -->
+            <div class="quiz-section">
+                <!-- Quiz Form -->
+                <form id="quiz-form" method="post">
+                    {% csrf_token %}
+
+                    <!-- Questions -->
+                    <div id="questions-container">
+                        {% for question in questions %}
+                        <div class="question-card bg-white rounded-lg shadow-lg p-6 mb-6 {% if forloop.first %}current{% else %}hidden{% endif %}"
+                             data-question="{{ forloop.counter }}">
+
+                            <!-- Question Header -->
+                            <div class="flex items-start justify-between mb-6">
+                                <div class="flex-1">
+                                    <div class="flex items-center mb-2">
+                                        <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium mr-3">
+                                            Question {{ forloop.counter }}
+                                        </span>
+                                        <span class="text-sm text-gray-500">{{ question.points }}</span>
+                                    </div>
+                                    <h2 class="text-xl font-semibold text-gray-800 leading-relaxed">
+                                        {{ question.question }}
+                                    </h2>
+                                </div>
+
+                                <!-- Question Type Badge -->
+                                <div class="flex-shrink-0 ml-4">
+                                    <span class="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs font-medium">
+                                        {{ question.get_question_type_display }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Answers -->
+                            <div class="space-y-3">
+                                {% for answer in question.answers.all %}
+                                <label class="answer-option block p-4 rounded-lg cursor-pointer">
+                                    <div class="flex items-center">
+                                        <input type="radio"
+                                               name="question_{{ question.id }}"
+                                               value="{{ answer.id }}"
+                                               class="w-4 h-4 text-blue-600 mr-4">
+                                        <span class="text-gray-700 font-medium flex-1">{{ answer.answer }}</span>
+                                    </div>
+                                </label>
+                                {% endfor %}
+                            </div>
+
+                            <!-- Question Explanation -->
+                            {% if question.explanation %}
+                            <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                <div class="flex items-start">
+                                    <i class="fas fa-info-circle text-blue-500 mt-1 mr-2"></i>
+                                    <div class="text-blue-700 text-sm">
+                                        <strong>Tip:</strong> {{ question.explanation }}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Navigation Buttons -->
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <div class="flex items-center justify-between">
+                            <button type="button"
+                                    id="prev-btn"
+                                    class="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors disabled:opacity-50"
+                                    disabled>
+                                <i class="fas fa-arrow-left mr-2"></i>Previous
+                            </button>
+
+                            <div class="flex items-center space-x-4">
+                                <span id="question-counter" class="text-gray-600 font-medium">1 of {{ questions.count }}</span>
+                            </div>
+
+                            <button type="button"
+                                    id="next-btn"
+                                    class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                                Next<i class="fas fa-arrow-right ml-2"></i>
+                            </button>
+
+                            <button type="submit"
+                                    id="submit-btn"
+                                    class="submit-button px-8 py-3 text-white rounded-lg font-semibold hidden">
+                                <i class="fas fa-paper-plane mr-2"></i>Submit Quiz
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let currentQuestion = 1;
+    const totalQuestions = {{ questions.count }};
+    let startTime = new Date();
+    let timerInterval;
+    let answeredQuestions = new Set();
+
+    // Timer functionality
+    function updateTimer() {
+        const now = new Date();
+        const elapsed = Math.floor((now - startTime) / 1000);
+        const minutes = Math.floor(elapsed / 60);
+        const seconds = elapsed % 60;
+        document.getElementById('quiz-timer').textContent =
+            `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    // Start timer
+    timerInterval = setInterval(updateTimer, 1000);
+
+    // Video event listeners
+    const video = document.getElementById('tutorial-video');
+    const videoStatus = document.getElementById('video-status');
+
+    if (video && video.tagName === 'VIDEO') {
+        video.addEventListener('play', () => {
+            videoStatus.textContent = 'Playing';
+        });
+
+        video.addEventListener('pause', () => {
+            videoStatus.textContent = 'Paused';
+        });
+
+        video.addEventListener('ended', () => {
+            videoStatus.textContent = 'Completed';
+        });
+    }
+
+    // Navigation functions
+    function showQuestion(questionNum) {
+        // Hide all questions
+        document.querySelectorAll('.question-card').forEach(card => {
+            card.classList.add('hidden');
+            card.classList.remove('current');
+        });
+
+        // Show current question
+        const currentCard = document.querySelector(`[data-question="${questionNum}"]`);
+        if (currentCard) {
+            currentCard.classList.remove('hidden');
+            currentCard.classList.add('current');
+        }
+
+        // Update counter
+        document.getElementById('question-counter').textContent = `${questionNum} of ${totalQuestions}`;
+
+        // Update buttons
+        document.getElementById('prev-btn').disabled = questionNum === 1;
+
+        const nextBtn = document.getElementById('next-btn');
+        const submitBtn = document.getElementById('submit-btn');
+
+        if (questionNum === totalQuestions) {
+            nextBtn.classList.add('hidden');
+            submitBtn.classList.remove('hidden');
+        } else {
+            nextBtn.classList.remove('hidden');
+            submitBtn.classList.add('hidden');
+        }
+
+        currentQuestion = questionNum;
+    }
+
+    function updateProgress() {
+        const progress = (answeredQuestions.size / totalQuestions) * 100;
+        document.getElementById('progress-bar').style.width = `${progress}%`;
+        document.getElementById('progress-text').textContent =
+            `${answeredQuestions.size} of ${totalQuestions} answered`;
+    }
+
+    // Answer selection handling
+    document.querySelectorAll('.answer-option').forEach(option => {
+        option.addEventListener('click', function() {
+            const radio = this.querySelector('input[type="radio"]');
+            const questionCard = this.closest('.question-card');
+            const questionNum = questionCard.getAttribute('data-question');
+
+            // Clear previous selections in this question
+            questionCard.querySelectorAll('.answer-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+
+            // Select this option
+            radio.checked = true;
+            this.classList.add('selected');
+
+            // Mark question as answered
+            answeredQuestions.add(parseInt(questionNum));
+            updateProgress();
+        });
+    });
+
+    // Navigation button handlers
+    document.getElementById('next-btn').addEventListener('click', function() {
+        if (currentQuestion < totalQuestions) {
+            showQuestion(currentQuestion + 1);
+        }
+    });
+
+    document.getElementById('prev-btn').addEventListener('click', function() {
+        if (currentQuestion > 1) {
+            showQuestion(currentQuestion - 1);
+        }
+    });
+
+    // Submit quiz
+    document.getElementById('submit-btn').addEventListener('click', function(e) {
+        e.preventDefault();
+        if (confirm('Are you sure you want to submit your quiz?')) {
+            clearInterval(timerInterval);
+            document.getElementById('quiz-form').submit();
+        }
+    });
+
+    // Initialize
+    showQuestion(1);
+    updateProgress();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,396 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Add Question - {{ survey.title }}{% endblock %}
+
+{% block content %}
+<div class="flex-1 p-6">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex items-center space-x-4">
+            <a href="{% url 'custom_admin:survey_questions' survey.id %}"
+               class="text-gray-600 hover:text-gray-800">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Add Question</h1>
+                <p class="text-gray-600 mt-1">{{ survey.title }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <div class="max-w-4xl">
+        <div class="bg-white rounded-lg shadow-sm border">
+            <div class="p-6">
+                <form method="post" id="questionForm">
+                    {% csrf_token %}
+
+                    <!-- Question Text -->
+                    <div class="mb-6">
+                        <label for="question_text" class="block text-sm font-medium text-gray-700 mb-2">
+                            Question Text <span class="text-red-500">*</span>
+                        </label>
+                        <textarea
+                            id="question_text"
+                            name="question_text"
+                            rows="3"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="Enter your question..."
+                            required></textarea>
+                    </div>
+
+                    <!-- Question Type -->
+                    <div class="mb-6">
+                        <label for="question_type" class="block text-sm font-medium text-gray-700 mb-2">
+                            Question Type <span class="text-red-500">*</span>
+                        </label>
+                        <select
+                            id="question_type"
+                            name="question_type"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            required
+                            onchange="handleQuestionTypeChange()">
+                            <option value="">Select question type...</option>
+                            <option value="text">Text (Short Answer)</option>
+                            <option value="textarea">Textarea (Long Answer)</option>
+                            <option value="mcq">Multiple Choice (Single Selection)</option>
+                            <option value="checkbox">Checkbox (Multiple Selection)</option>
+                            <option value="rating">Rating Scale (1-5)</option>
+                            <option value="yes_no">Yes/No</option>
+                        </select>
+                    </div>
+
+                    <!-- Question Order -->
+                    <div class="mb-6">
+                        <label for="order" class="block text-sm font-medium text-gray-700 mb-2">
+                            Question Order
+                        </label>
+                        <input type="number"
+                               id="order"
+                               name="order"
+                               min="1"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="Auto-assigned if left empty">
+                    </div>
+
+                    <!-- Required Field -->
+                    <div class="mb-6">
+                        <label class="flex items-center">
+                            <input
+                                type="checkbox"
+                                id="is_required"
+                                name="is_required"
+                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <span class="ml-2 text-sm text-gray-700">Required Question</span>
+                        </label>
+                    </div>
+
+                    <!-- Multiple Choice Options -->
+                    <div id="mcqSection" class="mb-6 hidden">
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">Multiple Choice Options</h3>
+
+                            <div id="mcqChoicesList" class="space-y-3">
+                                <!-- Initial choice items will be added by JavaScript -->
+                            </div>
+
+                            <div class="mt-4 flex items-center space-x-3">
+                                <button type="button" onclick="addMCQChoice()"
+                                        class="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600">
+                                    <i class="fas fa-plus mr-1"></i>Add Option
+                                </button>
+                                <span class="text-xs text-gray-500">Click the radio button to mark the correct answer</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Checkbox Options -->
+                    <div id="checkboxSection" class="mb-6 hidden">
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">Checkbox Options</h3>
+
+                            <div id="checkboxChoicesList" class="space-y-3">
+                                <!-- Initial choice items will be added by JavaScript -->
+                            </div>
+
+                            <div class="mt-4 flex items-center space-x-3">
+                                <button type="button" onclick="addCheckboxChoice()"
+                                        class="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600">
+                                    <i class="fas fa-plus mr-1"></i>Add Option
+                                </button>
+                                <span class="text-xs text-gray-500">Check boxes to mark correct answers (multiple allowed)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Rating Scale Options -->
+                    <div id="ratingSection" class="mb-6 hidden">
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">Rating Scale Configuration</h3>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label for="rating_min" class="block text-sm font-medium text-gray-700 mb-2">
+                                        Minimum Rating
+                                    </label>
+                                    <input type="number"
+                                           id="rating_min"
+                                           name="rating_min"
+                                           min="1"
+                                           max="5"
+                                           value="1"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label for="rating_max" class="block text-sm font-medium text-gray-700 mb-2">
+                                        Maximum Rating
+                                    </label>
+                                    <input type="number"
+                                           id="rating_max"
+                                           name="rating_max"
+                                           min="2"
+                                           max="10"
+                                           value="5"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Scale Labels (Optional)</label>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <input type="text" name="rating_min_label" placeholder="e.g., Very Poor"
+                                           class="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <input type="text" name="rating_max_label" placeholder="e.g., Excellent"
+                                           class="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Yes/No Configuration -->
+                    <div id="yesNoSection" class="mb-6 hidden">
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">Yes/No Question</h3>
+                            <div class="space-y-3">
+                                <label class="flex items-center">
+                                    <input type="radio" name="correct_answer" value="yes"
+                                           class="text-blue-600 focus:ring-blue-500">
+                                    <span class="ml-2 text-sm text-gray-700">Yes is the correct answer</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="correct_answer" value="no"
+                                           class="text-blue-600 focus:ring-blue-500">
+                                    <span class="ml-2 text-sm text-gray-700">No is the correct answer</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="correct_answer" value="both"
+                                           class="text-blue-600 focus:ring-blue-500">
+                                    <span class="ml-2 text-sm text-gray-700">Both answers are acceptable</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="flex justify-between pt-6 border-t">
+                        <a href="{% url 'custom_admin:survey_questions' survey.id %}"
+                           class="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400">
+                            Cancel
+                        </a>
+                        <button type="submit" class="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600">
+                            Create Question
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Help Guide -->
+        <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h3 class="text-sm font-medium text-blue-800 mb-3">Question Types Guide</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-700">
+                <div>
+                    <p><strong>Text:</strong> Single line input for short responses</p>
+                    <p><strong>Textarea:</strong> Multi-line input for detailed responses</p>
+                    <p><strong>Multiple Choice:</strong> Single selection from options with correct answer</p>
+                </div>
+                <div>
+                    <p><strong>Checkbox:</strong> Multiple selections allowed with correct answers</p>
+                    <p><strong>Rating Scale:</strong> Numeric rating from min to max values</p>
+                    <p><strong>Yes/No:</strong> Simple binary choice with correct answer option</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let mcqChoiceCounter = 0;
+let checkboxChoiceCounter = 0;
+
+function handleQuestionTypeChange() {
+    const questionType = document.getElementById('question_type').value;
+
+    // Hide all sections first
+    document.getElementById('mcqSection').classList.add('hidden');
+    document.getElementById('checkboxSection').classList.add('hidden');
+    document.getElementById('ratingSection').classList.add('hidden');
+    document.getElementById('yesNoSection').classList.add('hidden');
+
+    // Show relevant section
+    if (questionType === 'mcq') {
+        document.getElementById('mcqSection').classList.remove('hidden');
+        initializeMCQChoices();
+    } else if (questionType === 'checkbox') {
+        document.getElementById('checkboxSection').classList.remove('hidden');
+        initializeCheckboxChoices();
+    } else if (questionType === 'rating') {
+        document.getElementById('ratingSection').classList.remove('hidden');
+    } else if (questionType === 'yes_no') {
+        document.getElementById('yesNoSection').classList.remove('hidden');
+    }
+}
+
+function initializeMCQChoices() {
+    const choicesList = document.getElementById('mcqChoicesList');
+    choicesList.innerHTML = '';
+    mcqChoiceCounter = 0;
+
+    // Add initial 2 choices
+    addMCQChoice();
+    addMCQChoice();
+}
+
+function addMCQChoice() {
+    const choicesList = document.getElementById('mcqChoicesList');
+    mcqChoiceCounter++;
+
+    const choiceDiv = document.createElement('div');
+    choiceDiv.className = 'flex items-center space-x-3 p-3 bg-gray-50 rounded';
+    choiceDiv.innerHTML = `
+        <input type="radio" name="correct_mcq_answer" value="${mcqChoiceCounter}"
+               class="text-blue-600 focus:ring-blue-500" title="Mark as correct answer">
+        <span class="text-sm font-medium text-gray-700">Option ${mcqChoiceCounter}:</span>
+        <input type="text" name="mcq_choices[]" required
+               class="flex-1 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+               placeholder="Enter choice text...">
+        <button type="button" onclick="removeMCQChoice(this)"
+                class="text-red-500 hover:text-red-700 px-2">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    choicesList.appendChild(choiceDiv);
+}
+
+function removeMCQChoice(button) {
+    const choicesContainer = document.getElementById('mcqChoicesList');
+    if (choicesContainer.children.length > 2) {
+        button.closest('div').remove();
+    }
+}
+
+function initializeCheckboxChoices() {
+    const choicesList = document.getElementById('checkboxChoicesList');
+    choicesList.innerHTML = '';
+    checkboxChoiceCounter = 0;
+
+    // Add initial 2 choices
+    addCheckboxChoice();
+    addCheckboxChoice();
+}
+
+function addCheckboxChoice() {
+    const choicesList = document.getElementById('checkboxChoicesList');
+    checkboxChoiceCounter++;
+
+    const choiceDiv = document.createElement('div');
+    choiceDiv.className = 'flex items-center space-x-3 p-3 bg-gray-50 rounded';
+    choiceDiv.innerHTML = `
+        <input type="checkbox" name="correct_checkbox_answers" value="${checkboxChoiceCounter}"
+               class="text-blue-600 focus:ring-blue-500 rounded" title="Mark as correct answer">
+        <span class="text-sm font-medium text-gray-700">Option ${checkboxChoiceCounter}:</span>
+        <input type="text" name="checkbox_choices[]" required
+               class="flex-1 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+               placeholder="Enter choice text...">
+        <button type="button" onclick="removeCheckboxChoice(this)"
+                class="text-red-500 hover:text-red-700 px-2">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    choicesList.appendChild(choiceDiv);
+}
+
+function removeCheckboxChoice(button) {
+    const choicesContainer = document.getElementById('checkboxChoicesList');
+    if (choicesContainer.children.length > 2) {
+        button.closest('div').remove();
+    }
+}
+
+// Form validation
+document.getElementById('questionForm').addEventListener('submit', function(e) {
+    const questionType = document.getElementById('question_type').value;
+    const questionText = document.getElementById('question_text').value.trim();
+
+    if (!questionText) {
+        e.preventDefault();
+        alert('Please enter question text.');
+        return;
+    }
+
+    if (!questionType) {
+        e.preventDefault();
+        alert('Please select a question type.');
+        return;
+    }
+
+    // Validate MCQ
+    if (questionType === 'mcq') {
+        const choices = document.querySelectorAll('input[name="mcq_choices[]"]');
+        let hasValidChoices = false;
+        let hasCorrectAnswer = document.querySelector('input[name="correct_mcq_answer"]:checked');
+
+        choices.forEach(input => {
+            if (input.value.trim() !== '') {
+                hasValidChoices = true;
+            }
+        });
+
+        if (!hasValidChoices) {
+            e.preventDefault();
+            alert('Please add at least one choice for multiple choice question.');
+            return;
+        }
+
+        if (!hasCorrectAnswer) {
+            e.preventDefault();
+            alert('Please mark the correct answer for the multiple choice question.');
+            return;
+        }
+    }
+
+    // Validate Checkbox
+    if (questionType === 'checkbox') {
+        const choices = document.querySelectorAll('input[name="checkbox_choices[]"]');
+        let hasValidChoices = false;
+        let hasCorrectAnswers = document.querySelectorAll('input[name="correct_checkbox_answers"]:checked').length > 0;
+
+        choices.forEach(input => {
+            if (input.value.trim() !== '') {
+                hasValidChoices = true;
+            }
+        });
+
+        if (!hasValidChoices) {
+            e.preventDefault();
+            alert('Please add at least one choice for checkbox question.');
+            return;
+        }
+
+        if (!hasCorrectAnswers) {
+            e.preventDefault();
+            alert('Please mark at least one correct answer for the checkbox question.');
+            return;
+        }
+    }
+});
+</script>
+{% endblock %}

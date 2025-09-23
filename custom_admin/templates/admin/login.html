@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Management Access - SurveyEarn</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center">
+
+    <div class="max-w-md w-full space-y-8 p-8">
+        <div>
+            <!-- Logo/Header -->
+            <div class="text-center">
+                <i class="fas fa-poll text-4xl text-blue-600 mb-4"></i>
+                <h2 class="text-3xl font-bold text-gray-900">Management Portal</h2>
+                <p class="mt-2 text-sm text-gray-600">Access the platform management tools</p>
+            </div>
+        </div>
+
+        <!-- Messages -->
+        {% if messages %}
+            <div class="space-y-2">
+                {% for message in messages %}
+                    <div class="p-4 rounded-lg {% if message.tags == 'success' %}bg-green-50 text-green-800 border border-green-200{% elif message.tags == 'error' %}bg-red-50 text-red-800 border border-red-200{% elif message.tags == 'warning' %}bg-yellow-50 text-yellow-800 border border-yellow-200{% else %}bg-blue-50 text-blue-800 border border-blue-200{% endif %}">
+                        <div class="flex items-center">
+                            <i class="fas {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'error' %}fa-exclamation-circle{% elif message.tags == 'warning' %}fa-exclamation-triangle{% else %}fa-info-circle{% endif %} mr-2"></i>
+                            {{ message }}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- Login Form -->
+        <form class="mt-8 space-y-6" method="POST">
+            {% csrf_token %}
+            <div class="bg-white shadow-lg rounded-lg p-6 space-y-4">
+                <div>
+                    <label for="username" class="block text-sm font-medium text-gray-700 mb-1">
+                        <i class="fas fa-user mr-2"></i>Username
+                    </label>
+                    <input
+                        id="username"
+                        name="username"
+                        type="text"
+                        required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Enter your username"
+                    >
+                </div>
+
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-1">
+                        <i class="fas fa-lock mr-2"></i>Password
+                    </label>
+                    <input
+                        id="password"
+                        name="password"
+                        type="password"
+                        required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Enter your password"
+                    >
+                </div>
+
+                <div class="pt-4">
+                    <button
+                        type="submit"
+                        class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                    >
+                        <i class="fas fa-sign-in-alt mr-2"></i>
+                        Access Management Portal
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <!-- Security Notice -->
+        <div class="text-center">
+            <p class="text-xs text-gray-500">
+                <i class="fas fa-shield-alt mr-1"></i>
+                Authorized access only. All activity is monitored.
+            </p>
+        </div>
+
+        <!-- Back to Site Link -->
+        <div class="text-center">
+            <a href="/" class="text-sm text-blue-600 hover:text-blue-800">
+                <i class="fas fa-arrow-left mr-1"></i>
+                Back to SurveyEarn
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // Auto-focus on username field
+        document.getElementById('username').focus();
+
+        // Basic form validation
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+
+            if (!username || !password) {
+                e.preventDefault();
+                alert('Please fill in all fields.');
+                return false;
+            }
+        });
+    </script>
+</body>
+</html>

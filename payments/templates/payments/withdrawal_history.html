@@ -1,0 +1,378 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Withdrawal History - SurveyEarn</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation Header -->
+    <nav class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <a href="{% url 'accounts:dashboard' %}" class="text-2xl font-bold text-blue-600">
+                        <i class="fas fa-chart-bar mr-2"></i>SurveyEarn
+                    </a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'surveys:survey_list' %}" class="text-gray-600 hover:text-blue-600">
+                        <i class="fas fa-poll-h mr-1"></i>Surveys
+                    </a>
+                    <a href="{% url 'payments:wallet_dashboard' %}" class="text-blue-600 font-semibold">
+                        <i class="fas fa-wallet mr-1"></i>Wallet
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Breadcrumb -->
+        <div class="mb-6">
+            <nav class="flex" aria-label="Breadcrumb">
+                <ol class="flex items-center space-x-4">
+                    <li>
+                        <a href="{% url 'payments:wallet_dashboard' %}" class="text-blue-600 hover:text-blue-700">
+                            <i class="fas fa-wallet mr-1"></i>Wallet
+                        </a>
+                    </li>
+                    <li>
+                        <div class="flex items-center">
+                            <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                            <span class="text-gray-500">Withdrawal History</span>
+                        </div>
+                    </li>
+                </ol>
+            </nav>
+        </div>
+
+        <!-- Page Header -->
+        <div class="mb-8">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">Withdrawal History</h1>
+                    <p class="text-gray-600 mt-2">Track all your withdrawal requests</p>
+                </div>
+                <div class="mt-4 sm:mt-0">
+                    <a href="{% url 'payments:withdraw_request' %}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium">
+                        <i class="fas fa-plus mr-2"></i>New Withdrawal
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm font-medium">Total Requested</p>
+                        <p class="text-2xl font-bold text-blue-600 mt-2">KSh {{ summary.total_requested|floatformat:2 }}</p>
+                    </div>
+                    <div class="bg-blue-100 p-3 rounded-full">
+                        <i class="fas fa-arrow-up text-blue-600"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm font-medium">Total Completed</p>
+                        <p class="text-2xl font-bold text-green-600 mt-2">KSh {{ summary.total_completed|floatformat:2 }}</p>
+                    </div>
+                    <div class="bg-green-100 p-3 rounded-full">
+                        <i class="fas fa-check-circle text-green-600"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm font-medium">Pending Amount</p>
+                        <p class="text-2xl font-bold text-yellow-600 mt-2">KSh {{ summary.pending_amount|floatformat:2 }}</p>
+                    </div>
+                    <div class="bg-yellow-100 p-3 rounded-full">
+                        <i class="fas fa-clock text-yellow-600"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="bg-white rounded-xl shadow-sm mb-8">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-900">Filters</h2>
+            </div>
+            <div class="p-6">
+                <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <!-- Status Filter -->
+                    <div>
+                        <label for="status" class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                        <select name="status" id="status" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                            <option value="">All Statuses</option>
+                            <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                            <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
+                            <option value="processing" {% if status_filter == 'processing' %}selected{% endif %}>Processing</option>
+                            <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+                            <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
+                            <option value="failed" {% if status_filter == 'failed' %}selected{% endif %}>Failed</option>
+                        </select>
+                    </div>
+
+                    <!-- Method Filter -->
+                    <div>
+                        <label for="method" class="block text-sm font-medium text-gray-700 mb-2">Payment Method</label>
+                        <select name="method" id="method" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                            <option value="">All Methods</option>
+                            <option value="mpesa" {% if method_filter == 'mpesa' %}selected{% endif %}>M-Pesa</option>
+                            <option value="bank_transfer" {% if method_filter == 'bank_transfer' %}selected{% endif %}>Bank Transfer</option>
+                            <option value="paypal" {% if method_filter == 'paypal' %}selected{% endif %}>PayPal</option>
+                        </select>
+                    </div>
+
+                    <!-- Search -->
+                    <div>
+                        <label for="search" class="block text-sm font-medium text-gray-700 mb-2">Search</label>
+                        <input type="text" name="search" id="search" value="{{ search_query }}"
+                               placeholder="Amount or ID"
+                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    </div>
+
+                    <!-- Submit -->
+                    <div class="flex items-end">
+                        <button type="submit" class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium">
+                            <i class="fas fa-search mr-2"></i>Filter
+                        </button>
+                    </div>
+                </form>
+
+                {% if status_filter or method_filter or search_query %}
+                <div class="mt-4">
+                    <a href="{% url 'payments:withdrawal_status' %}" class="text-blue-600 hover:text-blue-700 text-sm">
+                        <i class="fas fa-times mr-1"></i>Clear all filters
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Withdrawal List -->
+        <div class="bg-white rounded-xl shadow-sm">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-900">Your Withdrawals</h2>
+            </div>
+
+            {% if withdrawals %}
+                <!-- Desktop Table -->
+                <div class="hidden md:block overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Method</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for withdrawal in withdrawals %}
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900">{{ withdrawal.created_at|date:"M d, Y" }}</p>
+                                            <p class="text-xs text-gray-500">{{ withdrawal.created_at|date:"H:i" }}</p>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900">KSh {{ withdrawal.amount|floatformat:2 }}</p>
+                                            <p class="text-xs text-gray-500">Net: KSh {{ withdrawal.net_amount|floatformat:2 }}</p>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <i class="fas
+                                            {% if withdrawal.payment_method == 'mpesa' %}fa-mobile-alt text-green-500
+                                            {% elif withdrawal.payment_method == 'bank_transfer' %}fa-university text-blue-500
+                                            {% elif withdrawal.payment_method == 'paypal' %}fa-paypal text-blue-700
+                                            {% endif %} mr-2"></i>
+                                            <span class="text-sm text-gray-900">{{ withdrawal.get_payment_method_display }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                        {% if withdrawal.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                        {% elif withdrawal.status == 'approved' %}bg-blue-100 text-blue-800
+                                        {% elif withdrawal.status == 'processing' %}bg-purple-100 text-purple-800
+                                        {% elif withdrawal.status == 'completed' %}bg-green-100 text-green-800
+                                        {% elif withdrawal.status == 'rejected' %}bg-red-100 text-red-800
+                                        {% elif withdrawal.status == 'failed' %}bg-red-100 text-red-800
+                                        {% elif withdrawal.status == 'cancelled' %}bg-gray-100 text-gray-800
+                                        {% endif %}">
+                                            {{ withdrawal.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                        <a href="{% url 'payments:withdrawal_detail' withdrawal.id %}"
+                                           class="text-blue-600 hover:text-blue-700 mr-3">
+                                            View Details
+                                        </a>
+                                        {% if withdrawal.status == 'pending' %}
+                                            <a href="{% url 'payments:cancel_withdrawal' withdrawal.id %}"
+                                               class="text-red-600 hover:text-red-700">
+                                                Cancel
+                                            </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Mobile Cards -->
+                <div class="md:hidden">
+                    <div class="divide-y divide-gray-200">
+                        {% for withdrawal in withdrawals %}
+                            <div class="p-6">
+                                <div class="flex items-center justify-between mb-3">
+                                    <div class="flex items-center">
+                                        <i class="fas
+                                        {% if withdrawal.payment_method == 'mpesa' %}fa-mobile-alt text-green-500
+                                        {% elif withdrawal.payment_method == 'bank_transfer' %}fa-university text-blue-500
+                                        {% elif withdrawal.payment_method == 'paypal' %}fa-paypal text-blue-700
+                                        {% endif %} mr-2"></i>
+                                        <span class="font-medium text-gray-900">{{ withdrawal.get_payment_method_display }}</span>
+                                    </div>
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                    {% if withdrawal.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                    {% elif withdrawal.status == 'approved' %}bg-blue-100 text-blue-800
+                                    {% elif withdrawal.status == 'processing' %}bg-purple-100 text-purple-800
+                                    {% elif withdrawal.status == 'completed' %}bg-green-100 text-green-800
+                                    {% elif withdrawal.status == 'rejected' %}bg-red-100 text-red-800
+                                    {% elif withdrawal.status == 'failed' %}bg-red-100 text-red-800
+                                    {% elif withdrawal.status == 'cancelled' %}bg-gray-100 text-gray-800
+                                    {% endif %}">
+                                        {{ withdrawal.get_status_display }}
+                                    </span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4 mb-4">
+                                    <div>
+                                        <p class="text-xs text-gray-500">Amount</p>
+                                        <p class="font-semibold">KSh {{ withdrawal.amount|floatformat:2 }}</p>
+                                        <p class="text-xs text-gray-500">Net: KSh {{ withdrawal.net_amount|floatformat:2 }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-gray-500">Date</p>
+                                        <p class="font-medium">{{ withdrawal.created_at|date:"M d, Y" }}</p>
+                                        <p class="text-xs text-gray-500">{{ withdrawal.created_at|date:"H:i" }}</p>
+                                    </div>
+                                </div>
+                                <div class="flex space-x-3">
+                                    <a href="{% url 'payments:withdrawal_detail' withdrawal.id %}"
+                                       class="flex-1 text-center bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">
+                                        View Details
+                                    </a>
+                                    {% if withdrawal.status == 'pending' %}
+                                        <a href="{% url 'payments:cancel_withdrawal' withdrawal.id %}"
+                                           class="flex-1 text-center bg-red-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-red-700">
+                                            Cancel
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                {% if page_obj.has_other_pages %}
+                    <div class="px-6 py-4 border-t border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <div class="text-sm text-gray-700">
+                                Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} withdrawals
+                            </div>
+                            <div class="flex space-x-2">
+                                {% if page_obj.has_previous %}
+                                    <a href="?page={{ page_obj.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if method_filter %}&method={{ method_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}"
+                                       class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
+                                        Previous
+                                    </a>
+                                {% endif %}
+
+                                {% for num in page_obj.paginator.page_range %}
+                                    {% if page_obj.number == num %}
+                                        <span class="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm">{{ num }}</span>
+                                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                        <a href="?page={{ num }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if method_filter %}&method={{ method_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}"
+                                           class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
+                                            {{ num }}
+                                        </a>
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% if page_obj.has_next %}
+                                    <a href="?page={{ page_obj.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if method_filter %}&method={{ method_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}"
+                                       class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
+                                        Next
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+            {% else %}
+                <!-- Empty State -->
+                <div class="p-12 text-center">
+                    <i class="fas fa-receipt text-gray-300 text-6xl mb-4"></i>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">No withdrawals found</h3>
+                    <p class="text-gray-500 mb-6">
+                        {% if status_filter or method_filter or search_query %}
+                            Try adjusting your filters or search terms.
+                        {% else %}
+                            You haven't made any withdrawal requests yet.
+                        {% endif %}
+                    </p>
+                    {% if not status_filter and not method_filter and not search_query %}
+                        <a href="{% url 'payments:withdraw_request' %}"
+                           class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
+                            <i class="fas fa-plus mr-2"></i>Make Your First Withdrawal
+                        </a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-12 mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <div class="flex justify-center items-center mb-4">
+                    <i class="fas fa-chart-bar text-2xl mr-2"></i>
+                    <span class="text-xl font-bold">SurveyEarn</span>
+                </div>
+                <p class="text-gray-300 text-sm">
+                    Earn money by completing surveys. Safe, secure, and reliable.
+                </p>
+                <div class="mt-6 flex justify-center space-x-6 text-sm">
+                    <a href="#" class="text-gray-300 hover:text-white">Privacy Policy</a>
+                    <a href="#" class="text-gray-300 hover:text-white">Terms of Service</a>
+                    <a href="#" class="text-gray-300 hover:text-white">Contact Support</a>
+                </div>
+                <p class="mt-6 text-xs text-gray-400">
+                    &copy; 2024 SurveyEarn. All rights reserved.
+                </p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

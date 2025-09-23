@@ -1,0 +1,495 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Manual Transactions - SurveyEarn Admin{% endblock %}
+
+{% block page_title %}Manual Transactions{% endblock %}
+{% block page_description %}Create manual financial adjustments, bonuses, and corrections{% endblock %}
+
+{% block page_actions %}
+<div class="flex space-x-3">
+    <a href="{% url 'custom_admin:export_transactions_csv' %}" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors">
+        <i class="fas fa-download mr-2"></i>Export CSV
+    </a>
+    <a href="{% url 'custom_admin:transactions' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+        <i class="fas fa-list mr-2"></i>View All Transactions
+    </a>
+    <a href="{% url 'custom_admin:dashboard' %}" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors">
+        <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<!-- Transaction Form -->
+<div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mb-8">
+    <div class="flex items-center mb-6">
+        <i class="fas fa-plus-circle text-blue-600 text-2xl mr-3"></i>
+        <h2 class="text-xl font-semibold text-gray-900">Create Manual Transaction</h2>
+    </div>
+
+    <form method="post" id="manualTransactionForm">
+        {% csrf_token %}
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- User Selection -->
+            <div class="lg:col-span-2">
+                <label for="user_search" class="block text-sm font-medium text-gray-700 mb-2">
+                    Search User <span class="text-red-500">*</span>
+                </label>
+                <div class="relative">
+                    <input 
+                        type="text" 
+                        id="user_search" 
+                        name="user_search" 
+                        placeholder="Search by username, email, or phone number..."
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        autocomplete="off"
+                        required
+                    >
+                    <input type="hidden" id="user_id" name="user_id" required>
+                    
+                    <!-- Search Results Dropdown -->
+                    <div id="userSearchResults" class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 hidden max-h-60 overflow-y-auto">
+                        <!-- Results populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <!-- Selected User Display -->
+                <div id="selectedUserDisplay" class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg hidden">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="font-medium text-blue-900" id="selectedUserInfo"></p>
+                            <p class="text-sm text-blue-700" id="selectedUserBalance"></p>
+                        </div>
+                        <button type="button" onclick="clearUserSelection()" class="text-blue-600 hover:text-blue-800">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transaction Type -->
+            <div>
+                <label for="transaction_type" class="block text-sm font-medium text-gray-700 mb-2">
+                    Transaction Type <span class="text-red-500">*</span>
+                </label>
+                <select 
+                    id="transaction_type" 
+                    name="transaction_type" 
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
+                >
+                    <option value="">Select type...</option>
+                    <option value="adjustment">Adjustment</option>
+                    <option value="bonus">Bonus</option>
+                    <option value="correction">Correction</option>
+                </select>
+                <p class="text-xs text-gray-500 mt-1">
+                    <strong>Adjustment:</strong> Balance corrections | 
+                    <strong>Bonus:</strong> Rewards or incentives | 
+                    <strong>Correction:</strong> Error fixes
+                </p>
+            </div>
+
+            <!-- Amount -->
+            <div>
+                <label for="amount" class="block text-sm font-medium text-gray-700 mb-2">
+                    Amount (KES) <span class="text-red-500">*</span>
+                </label>
+                <div class="relative">
+                    <input 
+                        type="number" 
+                        id="amount" 
+                        name="amount" 
+                        step="0.01" 
+                        placeholder="0.00"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        required
+                    >
+                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <span class="text-gray-500 text-sm">KES</span>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">
+                    Use positive amounts to add to balance, negative amounts to deduct
+                </p>
+            </div>
+
+            <!-- Description -->
+            <div class="lg:col-span-2">
+                <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
+                    Description
+                </label>
+                <textarea 
+                    id="description" 
+                    name="description" 
+                    rows="3"
+                    placeholder="Optional description for this transaction..."
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                ></textarea>
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="flex items-center justify-between mt-6 pt-6 border-t border-gray-200">
+            <div class="text-sm text-gray-600">
+                <i class="fas fa-info-circle mr-1"></i>
+                All manual transactions are logged and auditable
+            </div>
+            <div class="flex space-x-3">
+                <button 
+                    type="button" 
+                    onclick="resetForm()" 
+                    class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                    Reset Form
+                </button>
+                <button 
+                    type="submit" 
+                    class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
+                    id="submitBtn"
+                >
+                    <i class="fas fa-plus mr-2"></i>Create Transaction
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Recent Manual Transactions -->
+<div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-semibold text-gray-900">
+            <i class="fas fa-history text-gray-600 mr-2"></i>
+            Recent Manual Transactions
+        </h2>
+        <a href="{% url 'custom_admin:transactions' %}" class="text-blue-600 hover:text-blue-800 text-sm">
+            View All →
+        </a>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        ID
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        User
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Type
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Amount
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Date
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for transaction in recent_transactions %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        #{{ transaction.id|truncatechars:8 }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {% if transaction.user %}
+                            {{ transaction.user.username }}
+                        {% else %}
+                            <span class="text-gray-400">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            {{ transaction.transaction_type|title }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold
+                        {% if transaction.amount >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                        KES {{ transaction.amount|floatformat:2 }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ transaction.created_at|date:"M d, H:i" }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        {% if transaction.id %}
+                            <button onclick="showTransactionDetail('{{ transaction.id }}')"
+                                    class="text-blue-600 hover:text-blue-900">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        {% else %}
+                            <span class="text-gray-400">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                        <i class="fas fa-clock mr-2"></i>
+                        No recent manual transactions
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Transaction Detail Modal -->
+<div id="transactionModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
+        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-medium text-gray-900">Transaction Details</h3>
+                    <button onclick="closeTransactionModal()" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div id="modalContent">
+                    <!-- Modal content populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let searchTimeout;
+let selectedUser = null;
+
+// FIXED: Build the transaction detail URL base without triggering Django URL reversal
+const transactionDetailUrlBase = '/management/transaction-detail/';
+
+// User search functionality
+document.getElementById('user_search').addEventListener('input', function() {
+    const query = this.value.trim();
+
+    clearTimeout(searchTimeout);
+
+    if (query.length < 2) {
+        hideSearchResults();
+        return;
+    }
+
+    searchTimeout = setTimeout(() => {
+        searchUsers(query);
+    }, 300);
+});
+
+async function searchUsers(query) {
+    try {
+        const response = await fetch(`{% url 'custom_admin:transaction_search_users' %}?q=${encodeURIComponent(query)}`);
+        const data = await response.json();
+
+        displaySearchResults(data.users);
+    } catch (error) {
+        console.error('Error searching users:', error);
+        showNotification('Error searching users', 'error');
+    }
+}
+
+function displaySearchResults(users) {
+    const resultsDiv = document.getElementById('userSearchResults');
+
+    if (users.length === 0) {
+        resultsDiv.innerHTML = '<div class="p-3 text-gray-500 text-sm">No users found</div>';
+    } else {
+        resultsDiv.innerHTML = users.map(user => `
+            <div class="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                 onclick="selectUser('${user.id}', '${user.username}', '${user.email}', '${user.phone_number || 'N/A'}', ${user.balance})">
+                <div class="font-medium text-gray-900">${user.username}</div>
+                <div class="text-sm text-gray-600">${user.email} | ${user.phone_number || 'No phone'}</div>
+                <div class="text-sm text-green-600">Balance: KES ${user.balance.toFixed(2)}</div>
+            </div>
+        `).join('');
+    }
+
+    resultsDiv.classList.remove('hidden');
+}
+
+function selectUser(id, username, email, phone, balance) {
+    selectedUser = { id, username, email, phone, balance };
+
+    document.getElementById('user_id').value = id;
+    document.getElementById('user_search').value = username;
+
+    document.getElementById('selectedUserInfo').textContent = `${username} (${email})`;
+    document.getElementById('selectedUserBalance').textContent = `Current Balance: KES ${balance.toFixed(2)} | Phone: ${phone}`;
+
+    document.getElementById('selectedUserDisplay').classList.remove('hidden');
+    hideSearchResults();
+}
+
+function clearUserSelection() {
+    selectedUser = null;
+    document.getElementById('user_id').value = '';
+    document.getElementById('user_search').value = '';
+    document.getElementById('selectedUserDisplay').classList.add('hidden');
+}
+
+function hideSearchResults() {
+    document.getElementById('userSearchResults').classList.add('hidden');
+}
+
+// Hide search results when clicking outside
+document.addEventListener('click', function(event) {
+    const searchContainer = document.getElementById('user_search').parentElement;
+    if (!searchContainer.contains(event.target)) {
+        hideSearchResults();
+    }
+});
+
+// Form submission
+document.getElementById('manualTransactionForm').addEventListener('submit', function(e) {
+    if (!selectedUser) {
+        e.preventDefault();
+        showNotification('Please select a user first', 'error');
+        return;
+    }
+
+    const amount = document.getElementById('amount').value;
+    if (!amount || isNaN(amount)) {
+        e.preventDefault();
+        showNotification('Please enter a valid amount', 'error');
+        return;
+    }
+
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Creating...';
+});
+
+// Reset form
+function resetForm() {
+    document.getElementById('manualTransactionForm').reset();
+    clearUserSelection();
+    hideSearchResults();
+
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<i class="fas fa-plus mr-2"></i>Create Transaction';
+}
+
+// FIXED: Transaction detail modal with hardcoded URL path to avoid Django URL reversal issues
+async function showTransactionDetail(transactionId) {
+    if (!transactionId || transactionId === '0') {
+        showNotification('Invalid transaction ID', 'error');
+        return;
+    }
+
+    try {
+        // FIXED: Use direct URL path construction to avoid Django template URL issues
+        const url = transactionDetailUrlBase + transactionId + '/';
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.error) {
+            showNotification(data.error, 'error');
+            return;
+        }
+
+        const modalContent = document.getElementById('modalContent');
+        modalContent.innerHTML = `
+            <div class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-sm font-medium text-gray-600">Transaction ID</label>
+                        <p class="text-sm text-gray-900">#${data.transaction.id.substring(0, 8)}</p>
+                    </div>
+                    <div>
+                        <label class="text-sm font-medium text-gray-600">Type</label>
+                        <p class="text-sm text-gray-900 capitalize">${data.transaction.transaction_type}</p>
+                    </div>
+                    <div>
+                        <label class="text-sm font-medium text-gray-600">Amount</label>
+                        <p class="text-sm font-semibold ${data.transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'}">
+                            KES ${data.transaction.amount.toFixed(2)}
+                        </p>
+                    </div>
+                    <div>
+                        <label class="text-sm font-medium text-gray-600">Date</label>
+                        <p class="text-sm text-gray-900">${new Date(data.transaction.created_at).toLocaleString()}</p>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-sm font-medium text-gray-600">User</label>
+                    <p class="text-sm text-gray-900">${data.transaction.user.username} (${data.transaction.user.email})</p>
+                    <p class="text-xs text-gray-500">Current Balance: KES ${data.transaction.user.balance.toFixed(2)}</p>
+                </div>
+
+                <div>
+                    <label class="text-sm font-medium text-gray-600">Description</label>
+                    <p class="text-sm text-gray-900">${data.transaction.description || 'No description provided'}</p>
+                </div>
+
+                ${data.related_transactions && data.related_transactions.length > 0 ? `
+                <div>
+                    <label class="text-sm font-medium text-gray-600">Recent User Transactions</label>
+                    <div class="mt-2 space-y-1 max-h-32 overflow-y-auto">
+                        ${data.related_transactions.map(t => `
+                            <div class="text-xs p-2 bg-gray-50 rounded">
+                                ${t.transaction_type} - KES ${t.amount.toFixed(2)} - ${new Date(t.created_at).toLocaleDateString()}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                ` : ''}
+            </div>
+        `;
+
+        document.getElementById('transactionModal').classList.remove('hidden');
+
+    } catch (error) {
+        console.error('Error:', error);
+        showNotification('Error loading transaction details', 'error');
+    }
+}
+
+function closeTransactionModal() {
+    document.getElementById('transactionModal').classList.add('hidden');
+}
+
+// Notification function
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg text-white z-50 shadow-lg ${
+        type === 'success' ? 'bg-green-500' :
+        type === 'error' ? 'bg-red-500' :
+        'bg-blue-500'
+    }`;
+    notification.innerHTML = `
+        <div class="flex items-center">
+            <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'} mr-2"></i>
+            ${message}
+        </div>
+    `;
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+        notification.remove();
+    }, 5000);
+}
+
+// Show success message if transaction was created
+{% if messages %}
+    {% for message in messages %}
+        showNotification('{{ message|escapejs }}', '{{ message.tags }}');
+    {% endfor %}
+{% endif %}
+</script>
+
+{% endblock %}

@@ -1,0 +1,397 @@
+{% extends 'admin/base.html' %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block page_title %}{{ tutorial.title }}{% endblock %}
+{% block page_description %}Tutorial details, analytics, and quiz management{% endblock %}
+
+{% block page_actions %}
+<div class="flex space-x-3">
+    <a href="{% url 'custom_admin:tutorial_edit' tutorial.id %}"
+       class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors">
+        <i class="fas fa-edit mr-2"></i>Edit
+    </a>
+    <a href="{% url 'custom_admin:tutorials_list' %}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors">
+        <i class="fas fa-arrow-left mr-2"></i>Back to List
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Video Player Section -->
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Video Preview</h3>
+    <div class="video-container" style="aspect-ratio: 16/9; background: #000; border-radius: 8px; overflow: hidden;">
+        {% if tutorial.video_source == 'upload' and tutorial.video_file %}
+            <video controls class="w-full h-full" preload="metadata">
+                <source src="{{ tutorial.video_file.url }}" type="video/mp4">
+                <p class="text-white p-4">Your browser does not support the video tag.</p>
+            </video>
+        {% elif tutorial.video_source == 'url' and tutorial.video_url %}
+            {% if 'youtube.com' in tutorial.video_url or 'youtu.be' in tutorial.video_url %}
+                <iframe src="{{ tutorial.get_video_embed_url }}"
+                        class="w-full h-full"
+                        frameborder="0"
+                        allowfullscreen>
+                </iframe>
+            {% elif 'vimeo.com' in tutorial.video_url %}
+                <iframe src="{{ tutorial.get_video_embed_url }}"
+                        class="w-full h-full"
+                        frameborder="0"
+                        allowfullscreen>
+                </iframe>
+            {% else %}
+                <video controls class="w-full h-full" preload="metadata">
+                    <source src="{{ tutorial.video_url }}" type="video/mp4">
+                    <p class="text-white p-4">Your browser does not support the video tag.</p>
+                </video>
+            {% endif %}
+        {% else %}
+            <div class="w-full h-full bg-gray-800 flex items-center justify-center">
+                <div class="text-center text-gray-300">
+                    <i class="fas fa-video text-4xl mb-2"></i>
+                    <p>No video configured</p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Tutorial Header -->
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+    <div class="flex items-start space-x-6">
+        <div class="w-32 h-20 bg-gray-200 rounded-lg flex items-center justify-center">
+            {% if tutorial.video_source == 'upload' %}
+                <i class="fas fa-file-video text-gray-400 text-2xl"></i>
+            {% elif tutorial.video_source == 'url' %}
+                <i class="fas fa-play text-gray-400 text-2xl"></i>
+            {% else %}
+                <i class="fas fa-video text-gray-400 text-2xl"></i>
+            {% endif %}
+        </div>
+
+        <div class="flex-1">
+            <div class="flex items-center space-x-3 mb-3">
+                {% if tutorial.category %}
+                    <span class="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
+                        {{ tutorial.category.name }}
+                    </span>
+                {% else %}
+                    <span class="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
+                        Uncategorized
+                    </span>
+                {% endif %}
+                {% if tutorial.is_published %}
+                    <span class="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                        <i class="fas fa-check-circle mr-1"></i>Published
+                    </span>
+                {% else %}
+                    <span class="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                        <i class="fas fa-times-circle mr-1"></i>Draft
+                    </span>
+                {% endif %}
+            </div>
+            <p class="text-gray-600 mb-4">{{ tutorial.description|default:"No description provided" }}</p>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                    <span class="font-medium text-gray-700">Duration:</span>
+                    <div class="text-gray-900">
+                        {% if tutorial.video_duration %}
+                            {{ tutorial.video_duration }}
+                        {% else %}
+                            Not set
+                        {% endif %}
+                    </div>
+                </div>
+                <div>
+                    <span class="font-medium text-gray-700">Reward:</span>
+                    <div class="text-gray-900">
+                        {% if tutorial.completion_reward %}
+                            KES {{ tutorial.completion_reward }}
+                        {% else %}
+                            No reward
+                        {% endif %}
+                    </div>
+                </div>
+                <div>
+                    <span class="font-medium text-gray-700">Quiz Required:</span>
+                    <div class="text-gray-900">
+                        {% if tutorial.quiz_required %}Yes{% else %}No{% endif %}
+                    </div>
+                </div>
+                <div>
+                    <span class="font-medium text-gray-700">Pass Score:</span>
+                    <div class="text-gray-900">{{ tutorial.quiz_passing_score }}%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-6">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-600">Users Started</p>
+                <p class="text-3xl font-bold text-gray-900">{{ stats.total_started }}</p>
+            </div>
+            <div class="p-3 bg-blue-100 rounded-full">
+                <i class="fas fa-users text-blue-600"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-600">Completed</p>
+                <p class="text-3xl font-bold text-green-600">{{ stats.total_completed }}</p>
+            </div>
+            <div class="p-3 bg-green-100 rounded-full">
+                <i class="fas fa-check-circle text-green-600"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-600">Completion Rate</p>
+                <p class="text-3xl font-bold text-blue-600">{{ stats.completion_rate }}%</p>
+            </div>
+            <div class="p-3 bg-blue-100 rounded-full">
+                <i class="fas fa-chart-line text-blue-600"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-600">Quiz Pass Rate</p>
+                <p class="text-3xl font-bold text-yellow-600">{{ stats.quiz_pass_rate }}%</p>
+            </div>
+            <div class="p-3 bg-yellow-100 rounded-full">
+                <i class="fas fa-graduation-cap text-yellow-600"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-600">Average Score</p>
+                <p class="text-3xl font-bold text-purple-600">{{ stats.avg_score }}%</p>
+            </div>
+            <div class="p-3 bg-purple-100 rounded-full">
+                <i class="fas fa-star text-purple-600"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-600">Quiz Attempts</p>
+                <p class="text-3xl font-bold text-gray-600">{{ stats.quiz_attempts }}</p>
+            </div>
+            <div class="p-3 bg-gray-100 rounded-full">
+                <i class="fas fa-question-circle text-gray-600"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Content Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Quiz Questions -->
+    <div class="lg:col-span-2">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    <i class="fas fa-question-circle text-blue-500 mr-2"></i>
+                    Quiz Questions ({{ questions.count }})
+                </h3>
+            </div>
+
+            <div class="p-6">
+                {% if questions %}
+                    <div class="space-y-6">
+                        {% for question in questions %}
+                            <div class="border border-gray-200 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h4 class="font-medium text-gray-900">Question {{ question.order }}</h4>
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                        {{ question.get_question_type_display }}
+                                    </span>
+                                </div>
+
+                                <p class="text-gray-700 mb-4">{{ question.question }}</p>
+
+                                <div class="space-y-2">
+                                    {% for answer in question.answers.all %}
+                                        <div class="flex items-center space-x-3 p-3 rounded
+                                        {% if answer.is_correct %}bg-green-50 border border-green-200{% else %}bg-gray-50{% endif %}">
+                                            {% if answer.is_correct %}
+                                                <i class="fas fa-check text-green-600"></i>
+                                            {% else %}
+                                                <i class="fas fa-times text-gray-400"></i>
+                                            {% endif %}
+                                            <span class="flex-1">{{ answer.answer }}</span>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-8">
+                        <i class="fas fa-question-circle text-gray-400 text-3xl mb-3"></i>
+                        <p class="text-gray-500">No quiz questions created yet</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="space-y-6">
+        <!-- Recent Activity -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    <i class="fas fa-clock text-green-500 mr-2"></i>
+                    Recent Activity
+                </h3>
+            </div>
+
+            <div class="p-6">
+                {% if recent_progress %}
+                    <div class="space-y-4">
+                        {% for progress in recent_progress %}
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                                    {{ progress.user.username|first|upper }}
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-gray-900">{{ progress.user.username }}</p>
+                                    <p class="text-xs text-gray-500">{{ progress.updated_at|timesince }} ago</p>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-16 bg-gray-200 rounded-full h-2">
+                                        <div class="bg-green-500 h-2 rounded-full"
+                                             style="width: {% if progress.is_completed %}100{% else %}{{ progress.video_watch_percentage|default:0 }}{% endif %}%">
+                                        </div>
+                                    </div>
+                                    <span class="text-xs font-medium
+                                    {% if progress.is_completed %}text-green-600{% else %}text-gray-600{% endif %}">
+                                        {% if progress.is_completed %}✓{% else %}{{ progress.video_watch_percentage|default:0|floatformat:0 }}%{% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mt-4 pt-4 border-t border-gray-200">
+                        <a href="{% url 'custom_admin:user_progress' %}?tutorial={{ tutorial.id }}"
+                           class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                            View All Progress →
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-users text-gray-400 text-2xl mb-2"></i>
+                        <p class="text-gray-500 text-sm">No user activity yet</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Tutorial Settings -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    <i class="fas fa-cog text-purple-500 mr-2"></i>
+                    Settings
+                </h3>
+            </div>
+
+            <div class="p-6 space-y-4">
+                <div>
+                    <span class="text-sm font-medium text-gray-700">Video Source:</span>
+                    <div class="mt-1">
+                        {% if tutorial.video_source == 'upload' and tutorial.video_file %}
+                            <span class="text-green-600 text-sm">
+                                <i class="fas fa-file-video mr-1"></i>
+                                Uploaded File
+                            </span>
+                        {% elif tutorial.video_source == 'url' and tutorial.video_url %}
+                            <a href="{{ tutorial.video_url }}" target="_blank"
+                               class="text-blue-600 hover:text-blue-800 text-sm break-all">
+                                {{ tutorial.video_url|truncatechars:40 }}
+                            </a>
+                        {% else %}
+                            <span class="text-gray-400 text-sm">Not set</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div>
+                    <span class="text-sm font-medium text-gray-700">Created:</span>
+                    <div class="mt-1 text-sm text-gray-900">{{ tutorial.created_at|date:"M j, Y g:i A" }}</div>
+                </div>
+
+                <div>
+                    <span class="text-sm font-medium text-gray-700">Last Updated:</span>
+                    <div class="mt-1 text-sm text-gray-900">{{ tutorial.updated_at|date:"M j, Y g:i A" }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    <i class="fas fa-bolt text-yellow-500 mr-2"></i>
+                    Quick Actions
+                </h3>
+            </div>
+
+            <div class="p-6 space-y-3">
+                <a href="{% url 'custom_admin:tutorial_edit' tutorial.id %}"
+                   class="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors text-sm flex items-center justify-center">
+                    <i class="fas fa-edit mr-2"></i>Edit Tutorial
+                </a>
+
+                <form method="post" action="{% url 'custom_admin:tutorial_toggle_status' tutorial.id %}">
+                    {% csrf_token %}
+                    <button type="submit"
+                            class="w-full {% if tutorial.is_published %}bg-yellow-500 hover:bg-yellow-600{% else %}bg-green-500 hover:bg-green-600{% endif %} text-white px-4 py-2 rounded-lg transition-colors text-sm"
+                            onclick="return confirm('Are you sure?')">
+                        <i class="fas fa-{% if tutorial.is_published %}pause{% else %}play{% endif %} mr-2"></i>
+                        {% if tutorial.is_published %}Unpublish{% else %}Publish{% endif %}
+                    </button>
+                </form>
+
+                <form method="post" action="{% url 'custom_admin:tutorial_delete' tutorial.id %}">
+                    {% csrf_token %}
+                    <button type="submit"
+                            class="w-full bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors text-sm"
+                            onclick="return confirm('Are you sure you want to delete this tutorial? This action cannot be undone.')">
+                        <i class="fas fa-trash mr-2"></i>Delete Tutorial
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Additional JavaScript functionality can be added here if needed
+</script>
+{% endblock %}

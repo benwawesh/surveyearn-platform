@@ -1,0 +1,51 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Tutorial Categories{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">Tutorial Categories</h1>
+        <div class="mt-4">
+            <a href="{% url 'custom_admin:category_create' %}" 
+               class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg">
+                New Category
+            </a>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+        {% if categories %}
+        <table class="w-full">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left">Name</th>
+                    <th class="px-6 py-3 text-left">Description</th>
+                    <th class="px-6 py-3 text-left">Status</th>
+                    <th class="px-6 py-3 text-left">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for category in categories %}
+                <tr>
+                    <td class="px-6 py-4">{{ category.name }}</td>
+                    <td class="px-6 py-4">{{ category.description|default:"No description" }}</td>
+                    <td class="px-6 py-4">
+                        {% if category.is_active %}Active{% else %}Inactive{% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        <a href="{% url 'custom_admin:category_edit' category.id %}">Edit</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="text-center py-12">
+            <h3 class="text-lg text-gray-900">No categories yet</h3>
+            <p class="text-gray-500">Create your first category to get started.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,538 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}User Management{% endblock %}
+
+{% block content %}
+<div class="flex-1 p-6">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">User Management</h1>
+                <p class="text-gray-600 mt-1">Manage platform users and their accounts</p>
+            </div>
+            <!-- Add Cleanup Actions -->
+            <div class="flex space-x-2">
+                <a href="{% url 'custom_admin:delete_test_users' %}" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg flex items-center">
+                    <i class="fas fa-broom mr-2"></i>Delete Test Users
+                </a>
+                <button id="bulkDeleteBtn" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg flex items-center" disabled onclick="bulkDeleteSelected()">
+                    <i class="fas fa-trash-alt mr-2"></i>Delete Selected
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="bg-white rounded-lg shadow-sm border mb-6 p-4">
+        <form method="get" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <!-- Search -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Search Users</label>
+                    <input type="text" name="search" value="{{ search_query }}" placeholder="Username or email..."
+                           class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <!-- Status Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="" {% if not status_filter %}selected{% endif %}>All Users</option>
+                        <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active Only</option>
+                        <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive Only</option>
+                        <option value="staff" {% if status_filter == 'staff' %}selected{% endif %}>Staff Only</option>
+                        <option value="verified" {% if status_filter == 'verified' %}selected{% endif %}>Verified Email</option>
+                    </select>
+                </div>
+
+                <!-- Balance Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Balance Range</label>
+                    <select name="balance_range" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">All Balances</option>
+                        <option value="0" {% if request.GET.balance_range == '0' %}selected{% endif %}>Zero Balance</option>
+                        <option value="1-100" {% if request.GET.balance_range == '1-100' %}selected{% endif %}>KSh 1-100</option>
+                        <option value="100-500" {% if request.GET.balance_range == '100-500' %}selected{% endif %}>KSh 100-500</option>
+                        <option value="500+" {% if request.GET.balance_range == '500+' %}selected{% endif %}>KSh 500+</option>
+                    </select>
+                </div>
+
+                <!-- Filter Button -->
+                <div class="flex items-end">
+                    <button type="submit" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 mr-2">
+                        <i class="fas fa-filter mr-1"></i>Filter
+                    </button>
+                    <a href="{% url 'custom_admin:users' %}" class="bg-gray-300 text-gray-700 px-3 py-2 rounded hover:bg-gray-400">
+                        Clear
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- User Statistics -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white rounded-lg shadow-sm border p-4">
+            <div class="flex items-center">
+                <div class="p-2 bg-blue-100 rounded-lg">
+                    <i class="fas fa-users text-blue-600"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-gray-600">Total Users</p>
+                    <p class="text-lg font-semibold text-gray-900">{{ total_users|default:0 }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border p-4">
+            <div class="flex items-center">
+                <div class="p-2 bg-green-100 rounded-lg">
+                    <i class="fas fa-user-check text-green-600"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-gray-600">Active Users</p>
+                    <p class="text-lg font-semibold text-gray-900">{{ active_users|default:0 }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border p-4">
+            <div class="flex items-center">
+                <div class="p-2 bg-yellow-100 rounded-lg">
+                    <i class="fas fa-envelope-open text-yellow-600"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-gray-600">Verified Users</p>
+                    <p class="text-lg font-semibold text-gray-900">{{ verified_users|default:0 }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border p-4">
+            <div class="flex items-center">
+                <div class="p-2 bg-purple-100 rounded-lg">
+                    <i class="fas fa-user-plus text-purple-600"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-gray-600">New This Month</p>
+                    <p class="text-lg font-semibold text-gray-900">{{ new_users_month|default:0 }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Users List -->
+    <div class="bg-white rounded-lg shadow-sm border">
+        <div class="p-4 border-b">
+            <div class="flex items-center justify-between">
+                <h2 class="text-lg font-semibold text-gray-900">
+                    Users ({{ users.paginator.count|default:0 }})
+                </h2>
+                <!-- Select All Checkbox -->
+                <div class="flex items-center">
+                    <input type="checkbox" id="selectAll" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                    <label for="selectAll" class="ml-2 text-sm text-gray-700">Select All</label>
+                </div>
+            </div>
+        </div>
+
+        {% if users %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Select
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                User Details
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Contact Information
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Balance
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Activity
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Status
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Joined
+                            </th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Actions
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for user in users %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4">
+                                {% if not user.is_superuser and not user.is_staff %}
+                                <input type="checkbox" class="user-checkbox rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" value="{{ user.id }}">
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center">
+                                    <div class="h-10 w-10 bg-blue-500 rounded-full flex items-center justify-center">
+                                        <span class="text-white font-medium text-sm">
+                                            {{ user.username.0|upper }}
+                                        </span>
+                                    </div>
+                                    <div class="ml-4">
+                                        <div class="text-sm font-medium text-gray-900">{{ user.username }}</div>
+                                        <div class="text-sm text-gray-500">
+                                            {% if user.first_name or user.last_name %}
+                                                {{ user.first_name }} {{ user.last_name }}
+                                            {% else %}
+                                                No name provided
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="text-sm text-gray-900">{{ user.email }}</div>
+                                <div class="text-sm text-gray-500">
+                                    {% if user.phone_number %}
+                                        <i class="fas fa-phone mr-1"></i>{{ user.phone_number }}
+                                    {% else %}
+                                        <span class="text-gray-400">No phone</span>
+                                    {% endif %}
+                                </div>
+                                {% if user.location %}
+                                    <div class="text-xs text-gray-500">
+                                        <i class="fas fa-map-marker-alt mr-1"></i>{{ user.location }}
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium {% if user.balance >= 100 %}text-green-600{% elif user.balance > 0 %}text-orange-600{% else %}text-gray-600{% endif %}">
+                                    KSh {{ user.balance|default:"0.00"|floatformat:2 }}
+                                </div>
+                                {% if user.total_earnings %}
+                                    <div class="text-xs text-gray-500">
+                                        Total earned: KSh {{ user.total_earnings|floatformat:2 }}
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">
+                                    {{ user.total_surveys_completed|default:0 }} surveys
+                                </div>
+                                {% if user.last_login %}
+                                    <div class="text-xs text-gray-500">
+                                        Last: {{ user.last_login|date:"M d, Y" }}
+                                    </div>
+                                {% else %}
+                                    <div class="text-xs text-gray-400">Never logged in</div>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex flex-col space-y-1">
+                                    {% if user.is_active %}
+                                        <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Active</span>
+                                    {% else %}
+                                        <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">Inactive</span>
+                                    {% endif %}
+
+                                    {% if user.email_verified %}
+                                        <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                                            <i class="fas fa-check-circle mr-1"></i>Verified
+                                        </span>
+                                    {% else %}
+                                        <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
+                                            <i class="fas fa-exclamation-circle mr-1"></i>Unverified
+                                        </span>
+                                    {% endif %}
+
+                                    {% if user.is_staff %}
+                                        <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">Staff</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">{{ user.date_joined|date:"M d, Y" }}</div>
+                                <div class="text-xs text-gray-500">{{ user.date_joined|time:"H:i" }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <div class="flex items-center justify-end space-x-2">
+                                    <!-- View Details -->
+                                    <a href="{% url 'custom_admin:user_detail' user.id %}" class="text-blue-600 hover:text-blue-800" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+
+                                    <!-- Toggle Active Status -->
+                                    {% if user.is_active %}
+                                        <form method="POST" style="display: inline;" onsubmit="return confirm('Deactivate this user?')">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="user_id" value="{{ user.id }}">
+                                            <input type="hidden" name="action" value="deactivate">
+                                            <button type="submit" class="text-red-600 hover:text-red-800" title="Deactivate User">
+                                                <i class="fas fa-user-slash"></i>
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <form method="POST" style="display: inline;" onsubmit="return confirm('Activate this user?')">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="user_id" value="{{ user.id }}">
+                                            <input type="hidden" name="action" value="activate">
+                                            <button type="submit" class="text-green-600 hover:text-green-800" title="Activate User">
+                                                <i class="fas fa-user-check"></i>
+                                            </button>
+                                        </form>
+                                    {% endif %}
+
+                                    <!-- Balance Adjustment -->
+                                    <button class="text-yellow-600 hover:text-yellow-800" title="Adjust Balance" onclick="showBalanceModal('{{ user.id }}', '{{ user.username }}', '{{ user.balance }}')">
+                                        <i class="fas fa-coins"></i>
+                                    </button>
+
+                                    <!-- Delete User (only for non-admin users) -->
+                                    {% if not user.is_superuser and not user.is_staff %}
+                                        <a href="{% url 'custom_admin:delete_user' user.id %}" class="text-red-600 hover:text-red-800" title="Delete User" onclick="return confirm('Are you sure you want to delete this user? This action cannot be undone.')">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if users.has_other_pages %}
+                <div class="px-6 py-3 border-t border-gray-200 bg-gray-50">
+                    <div class="flex items-center justify-between">
+                        <div class="text-sm text-gray-700">
+                            Showing {{ users.start_index }} to {{ users.end_index }} of {{ users.paginator.count }} results
+                        </div>
+                        <div class="flex space-x-2">
+                            {% if users.has_previous %}
+                                <a href="?page={{ users.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+                                   class="px-3 py-1 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50">
+                                    Previous
+                                </a>
+                            {% endif %}
+
+                            <span class="px-3 py-1 text-sm bg-blue-500 text-white rounded">
+                                Page {{ users.number }} of {{ users.paginator.num_pages }}
+                            </span>
+
+                            {% if users.has_next %}
+                                <a href="?page={{ users.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+                                   class="px-3 py-1 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50">
+                                    Next
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="p-8 text-center">
+                <div class="text-gray-400 mb-4">
+                    <i class="fas fa-users text-4xl"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No users found</h3>
+                <p class="text-gray-600 mb-4">
+                    {% if search_query or status_filter %}
+                        No users match your current filters. Try adjusting your search criteria.
+                    {% else %}
+                        No users have joined the platform yet.
+                    {% endif %}
+                </p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Balance Adjustment Modal -->
+<div id="balanceModal" class="fixed inset-0 z-50 overflow-y-auto hidden">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+            <form method="POST" id="balanceForm">
+                {% csrf_token %}
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <i class="fas fa-coins text-yellow-600"></i>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
+                                Adjust User Balance
+                            </h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">User</label>
+                                    <p class="text-sm text-gray-900" id="modalUsername"></p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Current Balance</label>
+                                    <p class="text-sm text-gray-900 font-medium" id="modalCurrentBalance"></p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Adjustment Amount</label>
+                                    <div class="mt-1 relative rounded-md shadow-sm">
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <span class="text-gray-500 sm:text-sm">KSh</span>
+                                        </div>
+                                        <input type="number" name="amount" step="0.01" required
+                                               class="focus:ring-blue-500 focus:border-blue-500 block w-full pl-12 pr-12 sm:text-sm border-gray-300 rounded-md"
+                                               placeholder="0.00">
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-1">Use positive values to add, negative to subtract</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Reason</label>
+                                    <select name="reason" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                        <option value="">Select reason...</option>
+                                        <option value="correction">Balance Correction</option>
+                                        <option value="bonus">Performance Bonus</option>
+                                        <option value="refund">Refund</option>
+                                        <option value="penalty">Penalty/Deduction</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Admin Notes</label>
+                                    <textarea name="notes" rows="3"
+                                              class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                              placeholder="Optional notes about this adjustment..."></textarea>
+                                </div>
+                            </div>
+                            <input type="hidden" name="user_id" id="modalUserId">
+                            <input type="hidden" name="action" value="adjust_balance">
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-yellow-600 text-base font-medium text-white hover:bg-yellow-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
+                        Adjust Balance
+                    </button>
+                    <button type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:w-auto sm:text-sm" onclick="closeBalanceModal()">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Balance Modal Functions
+function showBalanceModal(userId, username, currentBalance) {
+    document.getElementById('modalUserId').value = userId;
+    document.getElementById('modalUsername').textContent = username;
+    document.getElementById('modalCurrentBalance').textContent = 'KSh ' + parseFloat(currentBalance).toFixed(2);
+    document.getElementById('balanceModal').classList.remove('hidden');
+}
+
+function closeBalanceModal() {
+    document.getElementById('balanceModal').classList.add('hidden');
+    document.getElementById('balanceForm').reset();
+}
+
+// Bulk Selection Functions
+document.getElementById('selectAll').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.user-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = this.checked;
+    });
+    updateBulkDeleteButton();
+});
+
+// Update bulk delete button when individual checkboxes change
+document.addEventListener('change', function(e) {
+    if (e.target.classList.contains('user-checkbox')) {
+        updateBulkDeleteButton();
+
+        // Update select all checkbox
+        const checkboxes = document.querySelectorAll('.user-checkbox');
+        const checkedBoxes = document.querySelectorAll('.user-checkbox:checked');
+        const selectAllCheckbox = document.getElementById('selectAll');
+
+        selectAllCheckbox.checked = checkboxes.length === checkedBoxes.length;
+        selectAllCheckbox.indeterminate = checkedBoxes.length > 0 && checkedBoxes.length < checkboxes.length;
+    }
+});
+
+function updateBulkDeleteButton() {
+    const checkedBoxes = document.querySelectorAll('.user-checkbox:checked');
+    const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+
+    bulkDeleteBtn.disabled = checkedBoxes.length === 0;
+
+    if (checkedBoxes.length > 0) {
+        bulkDeleteBtn.textContent = `Delete Selected (${checkedBoxes.length})`;
+    } else {
+        bulkDeleteBtn.innerHTML = '<i class="fas fa-trash-alt mr-2"></i>Delete Selected';
+    }
+}
+
+function bulkDeleteSelected() {
+    const checkedBoxes = document.querySelectorAll('.user-checkbox:checked');
+    const userIds = Array.from(checkedBoxes).map(cb => cb.value);
+
+    if (userIds.length === 0) {
+        alert('Please select users to delete.');
+        return;
+    }
+
+    if (!confirm(`Are you sure you want to delete ${userIds.length} users? This action cannot be undone.`)) {
+        return;
+    }
+
+    // Send AJAX request to bulk delete endpoint
+    fetch('{% url "custom_admin:bulk_delete_users" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            'user_ids': userIds
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            alert(`Successfully deleted ${data.deleted_count} users.`);
+            if (data.errors.length > 0) {
+                alert('Some errors occurred:\n' + data.errors.join('\n'));
+            }
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while deleting users.');
+    });
+}
+
+// Helper function to get CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

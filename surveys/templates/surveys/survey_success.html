@@ -1,0 +1,192 @@
+{% extends 'accounts/base.html' %}
+{% load static %}
+
+{% block title %}Survey Completed - SurveyEarn{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Success Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <!-- Success Header -->
+            <div class="bg-green-50 px-6 py-8 text-center">
+                <div class="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                    <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <h1 class="text-2xl font-bold text-green-900 mb-2">Survey Completed!</h1>
+                <p class="text-green-700">Thank you for sharing your valuable insights</p>
+            </div>
+            
+            <!-- Survey Details -->
+            <div class="px-6 py-6">
+                <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                    <h3 class="font-semibold text-gray-900 mb-2">{{ survey.title }}</h3>
+                    <p class="text-sm text-gray-600">{{ survey.description|truncatewords:20 }}</p>
+                </div>
+                
+                <!-- Earnings Information -->
+                <div class="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-green-600 mb-2">KSh {{ payout|floatformat:2 }}</div>
+                        <p class="text-green-700 font-medium mb-3">Earned from this survey</p>
+                        <div class="text-sm text-green-600">
+                            <p>✓ Added to your account balance</p>
+                            <p>✓ Available for immediate withdrawal</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Response Summary -->
+                <div class="border border-gray-200 rounded-lg p-4 mb-6">
+                    <h4 class="font-medium text-gray-900 mb-3">Response Details</h4>
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <span class="text-gray-500">Completed on:</span>
+                            <p class="font-medium">{{ response.completed_at|date:"M d, Y" }}</p>
+                        </div>
+                        <div>
+                            <span class="text-gray-500">Time taken:</span>
+                            <p class="font-medium">{{ response.completed_at|date:"g:i A" }}</p>
+                        </div>
+                        <div>
+                            <span class="text-gray-500">Questions answered:</span>
+                            <p class="font-medium">{{ response.answers.count }} questions</p>
+                        </div>
+                        <div>
+                            <span class="text-gray-500">Response ID:</span>
+                            <p class="font-medium text-xs">#{{ response.id|slice:":8" }}...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Current Balance -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h4 class="font-medium text-blue-900">Current Account Balance</h4>
+                            <p class="text-sm text-blue-700">Ready for withdrawal</p>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-2xl font-bold text-blue-600">KSh {{ user.balance|floatformat:2 }}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- What's Next -->
+                <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                    <h4 class="font-medium text-gray-900 mb-3">What's Next?</h4>
+                    <ul class="text-sm text-gray-600 space-y-2">
+                        <li class="flex items-center">
+                            <svg class="w-4 h-4 text-green-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                            Your earnings have been added to your account
+                        </li>
+                        <li class="flex items-center">
+                            <svg class="w-4 h-4 text-blue-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                            Look for more surveys to increase your earnings
+                        </li>
+                        <li class="flex items-center">
+                            <svg class="w-4 h-4 text-purple-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                            Withdraw your earnings when ready (minimum KSh 100)
+                        </li>
+                    </ul>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <a href="{% url 'surveys:survey_list' %}" 
+                       class="flex-1 inline-flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all font-medium">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                        </svg>
+                        Take More Surveys
+                    </a>
+                    
+                    <a href=" {% url 'accounts:dashboard' %}"
+                       class="flex-1 inline-flex items-center justify-center px-4 py-3 border border-gray-300 text-gray-700 bg-white rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all font-medium">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"></path>
+                        </svg>
+                        Dashboard
+                    </a>
+                    
+                    <a href="{% url 'accounts:withdrawals' %}" 
+                       class="flex-1 inline-flex items-center justify-center px-4 py-3 border border-green-300 text-green-700 bg-green-50 rounded-lg hover:bg-green-100 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all font-medium">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                        </svg>
+                        Withdraw Earnings
+                    </a>
+                </div>
+                
+                <!-- Additional Survey Recommendations -->
+                <div class="mt-6 bg-gray-50 rounded-lg p-4">
+                    <h4 class="font-medium text-gray-900 mb-3">Continue Earning</h4>
+                    <p class="text-sm text-gray-600 mb-3">Based on your activity, here are some ways to maximize your earnings:</p>
+                    <ul class="text-sm text-gray-600 space-y-1">
+                        <li>• Check back daily for new survey opportunities</li>
+                        <li>• Complete your profile to qualify for more surveys</li>
+                        <li>• Refer friends to earn bonus rewards</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Social Sharing -->
+        <div class="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
+            <h3 class="font-semibold text-gray-900 mb-2">Share the Opportunity</h3>
+            <p class="text-sm text-gray-600 mb-4">Help your friends earn money too!</p>
+            <div class="flex justify-center space-x-3">
+                <button onclick="shareWhatsApp()" class="inline-flex items-center px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm">
+                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.106"/>
+                    </svg>
+                    Share on WhatsApp
+                </button>
+                
+                <button onclick="copyReferralLink()" class="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 bg-white rounded-lg hover:bg-gray-50 transition-colors text-sm">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                    </svg>
+                    Copy Link
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function shareWhatsApp() {
+    const message = "I just earned KSh {{ payout|floatformat:2 }} by completing a survey on SurveyEarn! Join me and start earning money by sharing your opinions. Sign up here: {{ request.build_absolute_uri }}";
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+}
+
+function copyReferralLink() {
+    const referralLink = "{{ request.build_absolute_uri|slice:':-1' }}{% url 'accounts:register' %}";
+    
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(referralLink).then(function() {
+            alert('Referral link copied to clipboard!');
+        });
+    } else {
+        // Fallback for older browsers
+        const tempInput = document.createElement('input');
+        tempInput.value = referralLink;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand('copy');
+        document.body.removeChild(tempInput);
+        alert('Referral link copied to clipboard!');
+    }
+}
+</script>
+{% endblock %}

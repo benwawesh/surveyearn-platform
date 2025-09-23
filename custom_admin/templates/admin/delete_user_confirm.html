@@ -1,0 +1,161 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Delete User - {{ user.username }}{% endblock %}
+
+{% block page_title %}Delete User: {{ user.username }}{% endblock %}
+{% block page_description %}Confirm permanent user deletion{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto p-6">
+    <div class="bg-white shadow-lg rounded-lg border border-red-200">
+        <div class="bg-red-50 px-6 py-4 border-b border-red-200">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-2xl"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-lg font-medium text-red-800">
+                        Confirm User Deletion
+                    </h3>
+                    <p class="text-sm text-red-700">
+                        This action cannot be undone and will permanently delete all user data.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="px-6 py-6">
+            <div class="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-exclamation-circle text-red-400"></i>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-red-800">
+                            Warning: Permanent Data Loss
+                        </h3>
+                        <div class="mt-2 text-sm text-red-700">
+                            <p>This action will permanently delete all data associated with this user and cannot be reversed.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                    <h4 class="text-lg font-medium text-gray-900 mb-4">User Information</h4>
+                    <dl class="space-y-3">
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">Username</dt>
+                            <dd class="text-sm text-gray-900">{{ user.username }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">Email</dt>
+                            <dd class="text-sm text-gray-900">{{ user.email }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">Phone Number</dt>
+                            <dd class="text-sm text-gray-900">{{ user.phone_number|default:"Not provided" }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">Registration Date</dt>
+                            <dd class="text-sm text-gray-900">{{ user.date_joined|date:"F j, Y" }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">Account Status</dt>
+                            <dd class="text-sm">
+                                {% if user.is_active %}
+                                    <span class="inline-flex px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">Active</span>
+                                {% else %}
+                                    <span class="inline-flex px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">Inactive</span>
+                                {% endif %}
+                            </dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">Current Balance</dt>
+                            <dd class="text-sm text-gray-900">KSh {{ user.balance|default:"0.00"|floatformat:2 }}</dd>
+                        </div>
+                    </dl>
+                </div>
+
+                <div>
+                    <h4 class="text-lg font-medium text-gray-900 mb-4">Data to be Deleted</h4>
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <ul class="space-y-2 text-sm text-gray-700">
+                            <li class="flex justify-between">
+                                <span>User Profile & Account</span>
+                                <span class="font-medium">1 record</span>
+                            </li>
+                            <li class="flex justify-between">
+                                <span>Transactions</span>
+                                <span class="font-medium">{{ related_data.transactions|default:0 }} records</span>
+                            </li>
+                            <li class="flex justify-between">
+                                <span>Survey Responses</span>
+                                <span class="font-medium">{{ related_data.survey_responses|default:0 }} records</span>
+                            </li>
+                            <li class="flex justify-between border-t border-gray-200 pt-2 mt-2 font-medium">
+                                <span>Total Records</span>
+                                <span>{{ related_data.transactions|default:0|add:related_data.survey_responses|default:0|add:1 }}</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-yellow-700">
+                                    <strong>Note:</strong> All financial records, survey data, and personal information will be permanently removed from the system.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <form method="post" class="space-y-4">
+                {% csrf_token %}
+
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="confirmDelete" required
+                               class="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded">
+                        <label for="confirmDelete" class="ml-2 block text-sm text-gray-900">
+                            I understand that this action is permanent and cannot be undone. I confirm that I want to delete the user <strong>"{{ user.username }}"</strong> and all associated data.
+                        </label>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-4">
+                    <a href="{% url 'custom_admin:user_detail' user.id %}"
+                       class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded-md text-sm font-medium">
+                        <i class="fas fa-arrow-left mr-2"></i>Cancel
+                    </a>
+                    <button type="submit" id="deleteBtn" disabled
+                            class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="fas fa-trash mr-2"></i>Delete User Permanently
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('confirmDelete').addEventListener('change', function() {
+    const deleteBtn = document.getElementById('deleteBtn');
+    deleteBtn.disabled = !this.checked;
+
+    if (this.checked) {
+        deleteBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        deleteBtn.classList.add('hover:bg-red-700');
+    } else {
+        deleteBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        deleteBtn.classList.remove('hover:bg-red-700');
+    }
+});
+</script>
+{% endblock %}

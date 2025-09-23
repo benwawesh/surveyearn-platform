@@ -1,0 +1,408 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Withdrawal Management{% endblock %}
+
+{% block content %}
+<div class="flex-1 p-6">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Withdrawal Management</h1>
+                <p class="text-gray-600 mt-1">Manage user withdrawal requests and payment processing</p>
+            </div>
+            <div class="flex space-x-2">
+                <button class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                    <i class="fas fa-check mr-2"></i>Bulk Approve
+                </button>
+                <button class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    <i class="fas fa-download mr-2"></i>Export CSV
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white rounded-lg shadow-sm border p-4">
+            <div class="flex items-center">
+                <div class="p-2 bg-yellow-100 rounded-lg">
+                    <i class="fas fa-clock text-yellow-600"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-gray-600">Pending Requests</p>
+                    <p class="text-lg font-semibold text-gray-900">{{ pending_withdrawals_count|default:0 }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border p-4">
+            <div class="flex items-center">
+                <div class="p-2 bg-green-100 rounded-lg">
+                    <i class="fas fa-check-circle text-green-600"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-gray-600">Approved Today</p>
+                    <p class="text-lg font-semibold text-gray-900">{{ approved_today_count|default:0 }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border p-4">
+            <div class="flex items-center">
+                <div class="p-2 bg-blue-100 rounded-lg">
+                    <i class="fas fa-money-bill-wave text-blue-600"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-gray-600">Total Pending Amount</p>
+                    <p class="text-lg font-semibold text-gray-900">KSh {{ pending_amount|default:"0"|floatformat:0 }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border p-4">
+            <div class="flex items-center">
+                <div class="p-2 bg-purple-100 rounded-lg">
+                    <i class="fas fa-chart-line text-purple-600"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-gray-600">Processed This Month</p>
+                    <p class="text-lg font-semibold text-gray-900">KSh {{ monthly_processed|default:"0"|floatformat:0 }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="bg-white rounded-lg shadow-sm border mb-6 p-4">
+        <form method="get" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <!-- Status Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">All Status</option>
+                        <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="approved" {% if request.GET.status == 'approved' %}selected{% endif %}>Approved</option>
+                        <option value="processed" {% if request.GET.status == 'processed' %}selected{% endif %}>Processed</option>
+                        <option value="rejected" {% if request.GET.status == 'rejected' %}selected{% endif %}>Rejected</option>
+                    </select>
+                </div>
+
+                <!-- Payment Method Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                    <select name="payment_method" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">All Methods</option>
+                        <option value="mpesa" {% if request.GET.payment_method == 'mpesa' %}selected{% endif %}>M-Pesa</option>
+                        <option value="bank" {% if request.GET.payment_method == 'bank' %}selected{% endif %}>Bank Transfer</option>
+                        <option value="paypal" {% if request.GET.payment_method == 'paypal' %}selected{% endif %}>PayPal</option>
+                    </select>
+                </div>
+
+                <!-- From Date -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+                    <input type="date" name="from_date" value="{{ request.GET.from_date }}" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <!-- To Date -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+                    <input type="date" name="to_date" value="{{ request.GET.to_date }}" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <!-- Filter Button -->
+                <div class="flex items-end">
+                    <button type="submit" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 mr-2">
+                        <i class="fas fa-filter mr-1"></i>Filter
+                    </button>
+                    <a href="{% url 'custom_admin:withdrawals' %}" class="bg-gray-300 text-gray-700 px-3 py-2 rounded hover:bg-gray-400">
+                        Clear
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Withdrawals List -->
+    <div class="bg-white rounded-lg shadow-sm border">
+        <div class="p-4 border-b">
+            <h2 class="text-lg font-semibold text-gray-900">
+                Withdrawal Requests ({{ withdrawals.paginator.count|default:0 }})
+            </h2>
+        </div>
+
+        {% if withdrawals %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <input type="checkbox" class="rounded border-gray-300">
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                User Details
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Amount
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Payment Method
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Request Date
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Status
+                            </th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Actions
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for withdrawal in withdrawals %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <input type="checkbox" name="selected_withdrawals" value="{{ withdrawal.id }}" class="rounded border-gray-300">
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center">
+                                    <div class="h-8 w-8 bg-blue-500 rounded-full flex items-center justify-center">
+                                        <span class="text-white font-medium text-xs">
+                                            {{ withdrawal.user.first_name.0|default:withdrawal.user.username.0|upper }}{{ withdrawal.user.last_name.0|default:withdrawal.user.username.1|upper }}
+                                        </span>
+                                    </div>
+                                    <div class="ml-3">
+                                        <div class="text-sm font-medium text-gray-900">
+                                            <a href="{% url 'custom_admin:user_detail' withdrawal.user.id %}" class="text-blue-600 hover:text-blue-800">
+                                                {{ withdrawal.user.get_full_name|default:withdrawal.user.username }}
+                                            </a>
+                                        </div>
+                                        <div class="text-sm text-gray-500">{{ withdrawal.user.email }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="text-sm font-medium text-gray-900">KSh {{ withdrawal.amount|floatformat:0 }}</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    {% if withdrawal.payment_method == 'mpesa' %}
+                                        <i class="fas fa-mobile-alt text-green-500 mr-2"></i>
+                                        <div>
+                                            <div class="text-sm text-gray-900">M-Pesa</div>
+                                            <div class="text-xs text-gray-500">{{ withdrawal.payment_details }}</div>
+                                        </div>
+                                    {% elif withdrawal.payment_method == 'bank' %}
+                                        <i class="fas fa-university text-blue-500 mr-2"></i>
+                                        <div>
+                                            <div class="text-sm text-gray-900">Bank Transfer</div>
+                                            <div class="text-xs text-gray-500">{{ withdrawal.payment_details }}</div>
+                                        </div>
+                                    {% else %}
+                                        <i class="fas fa-credit-card text-purple-500 mr-2"></i>
+                                        <div>
+                                            <div class="text-sm text-gray-900">{{ withdrawal.payment_method|title }}</div>
+                                            <div class="text-xs text-gray-500">{{ withdrawal.payment_details }}</div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">{{ withdrawal.created_at|date:"M d, Y" }}</div>
+                                <div class="text-xs text-gray-500">{{ withdrawal.created_at|time:"H:i" }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full
+                                    {% if withdrawal.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                    {% elif withdrawal.status == 'approved' %}bg-green-100 text-green-800
+                                    {% elif withdrawal.status == 'processed' %}bg-blue-100 text-blue-800
+                                    {% else %}bg-red-100 text-red-800{% endif %}">
+                                    {{ withdrawal.get_status_display|default:withdrawal.status|title }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <div class="flex items-center justify-end space-x-2">
+                                    {% if withdrawal.status == 'pending' %}
+                                        <!-- Approve Button - Using specific URL -->
+                                        <form method="POST" action="{% url 'custom_admin:approve_withdrawal' withdrawal.id %}" style="display: inline;" onsubmit="return confirm('Approve this withdrawal request for KSh {{ withdrawal.amount }}?')">
+                                            {% csrf_token %}
+                                            <button type="submit" class="inline-flex items-center px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors" title="Approve">
+                                                <i class="fas fa-check mr-1"></i>
+                                                Approve
+                                            </button>
+                                        </form>
+
+                                        <!-- Reject Button - Using specific URL -->
+                                        <form method="POST" action="{% url 'custom_admin:reject_withdrawal' withdrawal.id %}" style="display: inline;" onsubmit="return confirm('Reject this withdrawal request? The amount will be returned to user balance.')">
+                                            {% csrf_token %}
+                                            <button type="submit" class="inline-flex items-center px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 transition-colors" title="Reject">
+                                                <i class="fas fa-times mr-1"></i>
+                                                Reject
+                                            </button>
+                                        </form>
+
+                                    {% elif withdrawal.status == 'approved' %}
+                                        <!-- Process Payment Button -->
+                                        <form method="POST" action="{% url 'custom_admin:process_withdrawal' withdrawal.id %}" style="display: inline;" onsubmit="return confirm('Process M-Pesa payment of KSh {{ withdrawal.net_amount }} to {{ withdrawal.payment_details }}?')">
+                                            {% csrf_token %}
+                                            <button type="submit" class="inline-flex items-center px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors" title="Process Payment">
+                                                <i class="fas fa-paper-plane mr-1"></i>
+                                                Process
+                                            </button>
+                                        </form>
+
+                                    {% elif withdrawal.status == 'processed' %}
+                                        <span class="inline-flex items-center px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
+                                            <i class="fas fa-check-circle mr-1"></i>
+                                            Completed
+                                        </span>
+
+                                    {% elif withdrawal.status == 'failed' %}
+                                        <span class="inline-flex items-center px-2 py-1 text-xs bg-red-100 text-red-800 rounded">
+                                            <i class="fas fa-exclamation-circle mr-1"></i>
+                                            Failed
+                                        </span>
+
+                                    {% elif withdrawal.status == 'rejected' %}
+                                        <span class="inline-flex items-center px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded">
+                                            <i class="fas fa-ban mr-1"></i>
+                                            Rejected
+                                        </span>
+
+                                    {% elif withdrawal.status == 'cancelled' %}
+                                        <span class="inline-flex items-center px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded">
+                                            <i class="fas fa-times-circle mr-1"></i>
+                                            Cancelled
+                                        </span>
+                                    {% endif %}
+
+                                    <!-- View Details Button -->
+                                    <a href="{% url 'custom_admin:withdrawal_detail' withdrawal.id %}" class="inline-flex items-center px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors" title="View Details">
+                                        <i class="fas fa-eye mr-1"></i>
+                                        View
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if withdrawals.has_other_pages %}
+                <div class="px-6 py-3 border-t border-gray-200 bg-gray-50">
+                    <div class="flex items-center justify-between">
+                        <div class="text-sm text-gray-700">
+                            Showing {{ withdrawals.start_index }} to {{ withdrawals.end_index }} of {{ withdrawals.paginator.count }} results
+                        </div>
+                        <div class="flex space-x-2">
+                            {% if withdrawals.has_previous %}
+                                <a href="?page={{ withdrawals.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+                                   class="px-3 py-1 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50">
+                                    Previous
+                                </a>
+                            {% endif %}
+
+                            <span class="px-3 py-1 text-sm bg-blue-500 text-white rounded">
+                                Page {{ withdrawals.number }} of {{ withdrawals.paginator.num_pages }}
+                            </span>
+
+                            {% if withdrawals.has_next %}
+                                <a href="?page={{ withdrawals.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+                                   class="px-3 py-1 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50">
+                                    Next
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="p-8 text-center">
+                <div class="text-gray-400 mb-4">
+                    <i class="fas fa-money-bill-wave text-4xl"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No withdrawal requests</h3>
+                <p class="text-gray-600 mb-4">
+                    {% if request.GET.status or request.GET.payment_method %}
+                        No withdrawal requests match your current filters. Try adjusting your search criteria.
+                    {% else %}
+                        There are no withdrawal requests at the moment.
+                    {% endif %}
+                </p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Withdrawal Detail Modal -->
+<div id="withdrawalModal" class="fixed inset-0 z-50 overflow-y-auto hidden">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Withdrawal Request Details</h3>
+                <div id="modalContent">
+                    <!-- Content will be loaded here -->
+                </div>
+            </div>
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:w-auto sm:text-sm" onclick="closeModal()">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Modal functions
+function showWithdrawalModal(withdrawalId) {
+    document.getElementById('withdrawalModal').classList.remove('hidden');
+    // Load withdrawal details via AJAX if needed
+}
+
+function closeModal() {
+    document.getElementById('withdrawalModal').classList.add('hidden');
+}
+
+// Bulk actions
+function selectAllWithdrawals() {
+    const checkboxes = document.querySelectorAll('input[name="selected_withdrawals"]');
+    checkboxes.forEach(checkbox => checkbox.checked = !checkbox.checked);
+}
+
+// Success/Error message handling
+{% if messages %}
+document.addEventListener('DOMContentLoaded', function() {
+    {% for message in messages %}
+    const alertType = '{{ message.tags }}' === 'error' ? 'error' : 'success';
+    const bgColor = alertType === 'error' ? 'bg-red-100 border-red-400 text-red-700' : 'bg-green-100 border-green-400 text-green-700';
+
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `fixed top-4 right-4 z-50 ${bgColor} px-4 py-3 rounded border`;
+    alertDiv.innerHTML = `
+        <strong class="font-bold">${alertType === 'error' ? 'Error!' : 'Success!'}</strong>
+        <span class="block sm:inline"> {{ message }}</span>
+        <button class="absolute top-0 bottom-0 right-0 px-4 py-3" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    document.body.appendChild(alertDiv);
+
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (alertDiv.parentElement) {
+            alertDiv.remove();
+        }
+    }, 5000);
+    {% endfor %}
+});
+{% endif %}
+</script>
+
+{% endblock content %}

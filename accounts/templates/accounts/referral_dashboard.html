@@ -1,0 +1,447 @@
+{% extends 'accounts/base.html' %}
+{% load static %}
+
+{% block title %}My Referrals - SurveyEarn{% endblock %}
+
+{% block extra_css %}
+<style>
+    .gradient-bg {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .card-hover {
+        transition: all 0.3s ease;
+    }
+    .card-hover:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    .pulse-ring {
+        animation: pulse-ring 1.5s cubic-bezier(0.215, 0.610, 0.355, 1.000) infinite;
+    }
+    @keyframes pulse-ring {
+        0% { transform: scale(.33); }
+        80%, 100% { opacity: 0; }
+    }
+    .copy-button {
+        transition: all 0.2s;
+    }
+    .copy-button:hover {
+        background-color: #4f46e5;
+    }
+    .stats-card {
+        background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+    .earning-breakdown {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+    .survey-stats {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+    .balance-highlight {
+        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="gradient-bg">
+    <div class="container mx-auto px-4 py-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl md:text-4xl font-bold text-white mb-2">
+                    <i class="fas fa-users-cog mr-3"></i>Referral Program
+                </h1>
+                <p class="text-indigo-100 text-lg">Earn 25% commission for every person you refer!</p>
+            </div>
+            <div class="hidden md:block">
+                <div class="text-right">
+                    <div class="text-white text-2xl font-bold">KSh {{ user.referral_earnings|default:"0.00"|floatformat:2 }}</div>
+                    <div class="text-indigo-200">Total Referral Earnings</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container mx-auto px-4 -mt-6 pb-12">
+    <!-- Enhanced Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+        <!-- Current Balance -->
+        <div class="balance-highlight rounded-xl p-6 text-center card-hover text-white">
+            <div class="inline-flex items-center justify-center w-12 h-12 bg-white bg-opacity-20 rounded-full mb-4">
+                <i class="fas fa-wallet text-white text-xl"></i>
+            </div>
+            <h3 class="text-2xl font-bold">KSh {{ user.balance|default:"0.00"|floatformat:2 }}</h3>
+            <p class="text-white text-opacity-90">Current Balance</p>
+        </div>
+
+        <!-- Total Referrals -->
+        <div class="stats-card rounded-xl p-6 text-center card-hover">
+            <div class="inline-flex items-center justify-center w-12 h-12 bg-blue-500 rounded-full mb-4">
+                <i class="fas fa-user-plus text-white text-xl"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-800">{{ user.total_referrals|default:"0" }}</h3>
+            <p class="text-gray-600">Total Referrals</p>
+        </div>
+
+        <!-- Referral Earnings -->
+        <div class="stats-card rounded-xl p-6 text-center card-hover">
+            <div class="inline-flex items-center justify-center w-12 h-12 bg-green-500 rounded-full mb-4">
+                <i class="fas fa-coins text-white text-xl"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-800">KSh {{ user.referral_earnings|default:"0.00"|floatformat:2 }}</h3>
+            <p class="text-gray-600">Referral Earnings</p>
+        </div>
+
+        <!-- Pending Commissions -->
+        <div class="stats-card rounded-xl p-6 text-center card-hover">
+            <div class="inline-flex items-center justify-center w-12 h-12 bg-yellow-500 rounded-full mb-4 relative">
+                <i class="fas fa-clock text-white text-xl"></i>
+                {% if pending_commissions_total > 0 %}
+                <div class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full pulse-ring"></div>
+                {% endif %}
+            </div>
+            <h3 class="text-2xl font-bold text-gray-800">KSh {{ pending_commissions_total|default:"0.00"|floatformat:2 }}</h3>
+            <p class="text-gray-600">Pending</p>
+        </div>
+
+        <!-- Survey Earnings -->
+        <div class="survey-stats rounded-xl p-6 text-center card-hover text-white">
+            <div class="inline-flex items-center justify-center w-12 h-12 bg-white bg-opacity-20 rounded-full mb-4">
+                <i class="fas fa-chart-line text-white text-xl"></i>
+            </div>
+            <h3 class="text-2xl font-bold">KSh {{ survey_earnings|default:"0.00"|floatformat:2 }}</h3>
+            <p class="text-white text-opacity-90">Survey Earnings</p>
+        </div>
+    </div>
+
+    <!-- Earnings Breakdown Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+        <div class="lg:col-span-2 bg-white rounded-xl shadow-lg p-6 card-hover">
+            <div class="flex items-center mb-6">
+                <div class="bg-indigo-100 p-3 rounded-full mr-4">
+                    <i class="fas fa-chart-pie text-indigo-600 text-xl"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800">Earnings Breakdown</h2>
+                    <p class="text-gray-600">Your income sources</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Direct Survey Earnings -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="font-semibold text-blue-800 flex items-center">
+                            <i class="fas fa-poll mr-2"></i>Direct Surveys
+                        </h4>
+                        <span class="text-sm text-blue-600 bg-blue-200 px-2 py-1 rounded">{{ completed_surveys_count|default:"0" }} surveys</span>
+                    </div>
+                    <div class="text-2xl font-bold text-blue-800 mb-1">KSh {{ survey_earnings|default:"0.00"|floatformat:2 }}</div>
+                    <p class="text-blue-600 text-sm">From {{ completed_surveys_count|default:"0" }} completed surveys</p>
+                </div>
+
+                <!-- Referral Commissions -->
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="font-semibold text-green-800 flex items-center">
+                            <i class="fas fa-users mr-2"></i>Referral Income
+                        </h4>
+                        <span class="text-sm text-green-600 bg-green-200 px-2 py-1 rounded">{{ user.total_referrals|default:"0" }} referrals</span>
+                    </div>
+                    <div class="text-2xl font-bold text-green-800 mb-1">KSh {{ user.referral_earnings|default:"0.00"|floatformat:2 }}</div>
+                    <p class="text-green-600 text-sm">25% commission from referrals</p>
+                </div>
+
+                <!-- Total Balance -->
+                <div class="md:col-span-2 bg-purple-50 border border-purple-200 rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="font-semibold text-purple-800 flex items-center">
+                            <i class="fas fa-wallet mr-2"></i>Available Balance
+                        </h4>
+                        <span class="text-sm text-purple-600 bg-purple-200 px-2 py-1 rounded">Withdrawable</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <div class="text-3xl font-bold text-purple-800 mb-1">KSh {{ user.balance|default:"0.00"|floatformat:2 }}</div>
+                            <p class="text-purple-600 text-sm">
+                                Total: KSh {{ total_earnings|default:"0.00"|floatformat:2 }} 
+                                ({{ percentage_from_referrals|default:"0" }}% from referrals)
+                            </p>
+                        </div>
+                        <a href="{% url 'payments:wallet_dashboard' %}" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors duration-200">
+                            <i class="fas fa-arrow-right mr-2"></i>Withdraw
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+            <div class="flex items-center mb-6">
+                <div class="bg-orange-100 p-3 rounded-full mr-4">
+                    <i class="fas fa-clock text-orange-600 text-xl"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800">Recent Activity</h2>
+                    <p class="text-gray-600">Latest earnings</p>
+                </div>
+            </div>
+
+            <div class="space-y-4 max-h-80 overflow-y-auto">
+                {% for activity in recent_activities %}
+                <div class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center mr-3
+                        {% if activity.type == 'survey' %}bg-blue-100{% elif activity.type == 'referral' %}bg-green-100{% endif %}">
+                        <i class="text-sm
+                            {% if activity.type == 'survey' %}fas fa-poll text-blue-600{% elif activity.type == 'referral' %}fas fa-user-plus text-green-600{% endif %}"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-gray-800">
+                            {% if activity.type == 'survey' %}
+                                Completed "{{ activity.survey_title }}"
+                            {% elif activity.type == 'referral' %}
+                                {{ activity.referred_username }} registered
+                            {% endif %}
+                        </p>
+                        <p class="text-xs text-gray-500">{{ activity.date|timesince }} ago</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-sm font-bold text-green-600">+KSh {{ activity.amount|floatformat:2 }}</span>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-8">
+                    <i class="fas fa-history text-gray-300 text-3xl mb-3"></i>
+                    <p class="text-gray-500">No recent activity</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Referral Link Section -->
+        <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+            <div class="flex items-center mb-6">
+                <div class="bg-indigo-100 p-3 rounded-full mr-4">
+                    <i class="fas fa-share-alt text-indigo-600 text-xl"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800">Your Referral Link</h2>
+                    <p class="text-gray-600">Share this link to start earning!</p>
+                </div>
+            </div>
+
+            <!-- Referral Code Badge -->
+            <div class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-4 rounded-lg mb-4">
+                <div class="text-center">
+                    <p class="text-sm opacity-90 mb-1">Your Referral Code</p>
+                    <p class="text-2xl font-bold tracking-wider">{{ user.referral_code|default:"XXXXXX" }}</p>
+                </div>
+            </div>
+
+            <!-- Link Input -->
+            <div class="space-y-4">
+                <div class="flex">
+                    <input
+                        type="text"
+                        id="referralLink"
+                        value="{{ referral_url|default:'http://localhost:8000/?ref=XXXXXX' }}"
+                        readonly
+                        class="flex-1 px-4 py-3 border border-gray-300 rounded-l-lg bg-gray-50 text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                    <button
+                        onclick="copyReferralLink()"
+                        class="copy-button bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-r-lg transition-colors duration-200"
+                    >
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+
+                <!-- Share Buttons -->
+                <div class="flex space-x-3">
+                    <button class="flex-1 bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg transition-colors duration-200" onclick="shareWhatsApp()">
+                        <i class="fab fa-whatsapp mr-2"></i>WhatsApp
+                    </button>
+                    <button class="flex-1 bg-blue-400 hover:bg-blue-500 text-white py-3 rounded-lg transition-colors duration-200" onclick="shareTwitter()">
+                        <i class="fab fa-twitter mr-2"></i>Twitter
+                    </button>
+                    <button class="flex-1 bg-blue-800 hover:bg-blue-900 text-white py-3 rounded-lg transition-colors duration-200" onclick="shareFacebook()">
+                        <i class="fab fa-facebook mr-2"></i>Facebook
+                    </button>
+                </div>
+            </div>
+
+            <!-- Commission Info -->
+            <div class="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div class="flex items-center">
+                    <i class="fas fa-info-circle text-green-600 mr-3"></i>
+                    <div>
+                        <h4 class="font-semibold text-green-800">Earn 25% Commission</h4>
+                        <p class="text-green-700 text-sm">You earn KSh 125 for each registration + 25% of their survey earnings!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Commissions -->
+        <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center">
+                    <div class="bg-green-100 p-3 rounded-full mr-4">
+                        <i class="fas fa-history text-green-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-800">Recent Commissions</h2>
+                        <p class="text-gray-600">Your latest earnings</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-4 max-h-96 overflow-y-auto">
+                {% if recent_commissions %}
+                    {% for commission in recent_commissions %}
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center mr-3">
+                                <i class="fas fa-user text-indigo-600"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-gray-800">{{ commission.referred_user.username|default:"Anonymous" }}</h4>
+                                <p class="text-sm text-gray-600 capitalize">{{ commission.commission_type }} commission</p>
+                                <p class="text-xs text-gray-500">{{ commission.created_at|date:"M d, Y" }}</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-bold text-green-600">+KSh {{ commission.commission_amount|floatformat:2 }}</div>
+                            <div class="flex items-center">
+                                {% if commission.processed %}
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        <i class="fas fa-check-circle mr-1"></i>Processed
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                        <i class="fas fa-clock mr-1"></i>Pending
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-12">
+                        <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-hand-holding-usd text-gray-400 text-3xl"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-600 mb-2">No commissions yet</h3>
+                        <p class="text-gray-500 mb-4">Start sharing your referral link to earn commissions!</p>
+                        <button onclick="copyReferralLink()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg transition-colors duration-200">
+                            <i class="fas fa-copy mr-2"></i>Copy Referral Link
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- How It Works Section -->
+    <div class="mt-12 bg-white rounded-xl shadow-lg p-8">
+        <h2 class="text-2xl font-bold text-gray-800 text-center mb-8">How It Works</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-share-alt text-blue-600 text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">1. Share Your Link</h3>
+                <p class="text-gray-600">Copy and share your unique referral link with friends and family.</p>
+            </div>
+            <div class="text-center">
+                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-user-plus text-green-600 text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">2. They Register</h3>
+                <p class="text-gray-600">When someone registers using your link, you earn KSh 125 instantly!</p>
+            </div>
+            <div class="text-center">
+                <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-coins text-purple-600 text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">3. Earn Commissions</h3>
+                <p class="text-gray-600">Plus 25% of everything they earn from surveys - passive income!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Toast -->
+<div id="successToast" class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg transform translate-x-full transition-transform duration-300 z-50">
+    <div class="flex items-center">
+        <i class="fas fa-check-circle mr-2"></i>
+        <span>Referral link copied to clipboard!</span>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function copyReferralLink() {
+        const linkInput = document.getElementById('referralLink');
+        linkInput.select();
+        linkInput.setSelectionRange(0, 99999);
+
+        navigator.clipboard.writeText(linkInput.value).then(function() {
+            showSuccessToast();
+        });
+    }
+
+    function showSuccessToast() {
+        const toast = document.getElementById('successToast');
+        toast.classList.remove('translate-x-full');
+        setTimeout(() => {
+            toast.classList.add('translate-x-full');
+        }, 3000);
+    }
+
+    function shareWhatsApp() {
+        const link = document.getElementById('referralLink').value;
+        const message = encodeURIComponent(`Join SurveyEarn and start earning money from surveys! Use my referral link: ${link}`);
+        window.open(`https://wa.me/?text=${message}`, '_blank');
+    }
+
+    function shareTwitter() {
+        const link = document.getElementById('referralLink').value;
+        const message = encodeURIComponent(`Join me on SurveyEarn and start earning money from surveys! ${link}`);
+        window.open(`https://twitter.com/intent/tweet?text=${message}`, '_blank');
+    }
+
+    function shareFacebook() {
+        const link = document.getElementById('referralLink').value;
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}`, '_blank');
+    }
+
+    // Add interactive animations
+    document.addEventListener('DOMContentLoaded', function() {
+        const cards = document.querySelectorAll('.card-hover');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        });
+
+        cards.forEach(card => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            card.style.transition = 'all 0.6s ease';
+            observer.observe(card);
+        });
+    });
+</script>
+{% endblock %}

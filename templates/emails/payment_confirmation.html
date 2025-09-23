@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Confirmed - SurveyEarn</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 0;
+        }
+        .header {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            padding: 30px 20px;
+            text-align: center;
+            color: white;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .success-badge {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50px;
+            padding: 10px 20px;
+            display: inline-block;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        .content {
+            padding: 30px 20px;
+        }
+        .payment-details {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border: 2px solid #28a745;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .payment-details h2 {
+            color: #28a745;
+            margin-top: 0;
+            font-size: 24px;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #dee2e6;
+            margin-bottom: 10px;
+        }
+        .detail-row:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        .detail-label {
+            font-weight: bold;
+            color: #6c757d;
+        }
+        .detail-value {
+            font-weight: bold;
+            color: #212529;
+        }
+        .amount {
+            font-size: 24px;
+            color: #28a745;
+        }
+        .next-steps {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .next-steps h3 {
+            color: #0c5460;
+            margin-top: 0;
+        }
+        .feature-list {
+            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .feature-list h3 {
+            color: #856404;
+            margin-top: 0;
+        }
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: bold;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .footer {
+            background-color: #343a40;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            font-size: 14px;
+        }
+        .footer a {
+            color: #adb5bd;
+            text-decoration: none;
+        }
+        @media only screen and (max-width: 600px) {
+            .container {
+                width: 100% !important;
+            }
+            .header, .content, .footer {
+                padding: 20px 15px !important;
+            }
+            .detail-row {
+                flex-direction: column;
+                text-align: center;
+            }
+            .detail-row .detail-label,
+            .detail-row .detail-value {
+                margin: 5px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="success-badge">✅ PAYMENT CONFIRMED</div>
+            <h1>Account Activated!</h1>
+            <p style="margin: 10px 0 0 0; font-size: 18px;">Your SurveyEarn journey starts now</p>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <p><strong>Congratulations {{ username|default:"there" }}!</strong></p>
+
+            <p>Your M-Pesa payment has been successfully processed and your SurveyEarn account is now <strong style="color: #28a745;">ACTIVE</strong>.</p>
+
+            <!-- Payment Details -->
+            <div class="payment-details">
+                <h2>💳 Payment Receipt</h2>
+                <div class="detail-row">
+                    <span class="detail-label">Amount Paid:</span>
+                    <span class="detail-value amount">KSh {{ amount|default:"500" }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Receipt Number:</span>
+                    <span class="detail-value">{{ receipt_number|default:"N/A" }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Payment Date:</span>
+                    <span class="detail-value">{{ payment_date|date:"F d, Y H:i"|default:"Today" }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Account Status:</span>
+                    <span class="detail-value" style="color: #28a745;">✅ ACTIVE</span>
+                </div>
+            </div>
+
+            <!-- Next Steps -->
+            <div class="next-steps">
+                <h3>🚀 What's Next?</h3>
+                <ol style="margin: 0; padding-left: 20px;">
+                    <li><strong>Login to Your Dashboard:</strong> Access your personalized survey dashboard</li>
+                    <li><strong>Complete Your Profile:</strong> Fill out additional details to get better survey matches</li>
+                    <li><strong>Start Taking Surveys:</strong> Begin earning money immediately</li>
+                    <li><strong>Get Paid:</strong> Receive payments directly to your M-Pesa account</li>
+                </ol>
+            </div>
+
+            <!-- Features -->
+            <div class="feature-list">
+                <h3>🎯 What You Get Access To:</h3>
+                <ul style="margin: 0; padding-left: 20px;">
+                    <li><strong>Unlimited Survey Access:</strong> Take as many surveys as you qualify for</li>
+                    <li><strong>Daily Survey Notifications:</strong> Get alerts for new high-paying surveys</li>
+                    <li><strong>M-Pesa Integration:</strong> Direct payments to your mobile money account</li>
+                    <li><strong>24/7 Support:</strong> Our team is always here to help</li>
+                    <li><strong>Performance Tracking:</strong> Monitor your earnings and progress</li>
+                </ul>
+            </div>
+
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="{{ site_url }}" class="cta-button">Start Taking Surveys Now →</a>
+            </div>
+
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h3 style="color: #495057; margin-top: 0;">💡 Pro Tips for Maximum Earnings:</h3>
+                <ul style="margin: 0; padding-left: 20px; color: #6c757d;">
+                    <li>Check your dashboard daily for new survey opportunities</li>
+                    <li>Complete your profile 100% for better survey matching</li>
+                    <li>Respond to surveys quickly as spots are limited</li>
+                    <li>Provide honest, thoughtful responses to qualify for premium surveys</li>
+                </ul>
+            </div>
+
+            <p><strong>Welcome to the SurveyEarn family!</strong><br>
+            Start earning today and turn your opinions into cash.</p>
+
+            <p>Best regards,<br>
+            <strong>The SurveyEarn Team</strong></p>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p><strong>SurveyEarn</strong> - Kenya's #1 Survey Platform</p>
+            <p style="font-size: 12px; margin-top: 15px;">
+                Need help? Reply to this email or visit our support center.<br>
+                <a href="#">Support Center</a> |
+                <a href="#">FAQ</a> |
+                <a href="#">Contact Us</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

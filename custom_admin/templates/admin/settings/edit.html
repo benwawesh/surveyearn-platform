@@ -1,0 +1,449 @@
+<!-- custom_admin/templates/admin/settings/edit.html -->
+{% extends 'admin/base.html' %}
+
+{% block title %}Edit Setting - SurveyEarn Admin{% endblock %}
+
+{% block page_title %}Edit Setting{% endblock %}
+{% block page_description %}Modify {{ setting.setting_name }} configuration{% endblock %}
+
+{% block page_actions %}
+<div class="flex space-x-2">
+    <a href="{% url 'custom_admin:settings_dashboard' %}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm">
+        <i class="fas fa-arrow-left mr-1"></i>
+        Back to Settings
+    </a>
+    <a href="{% url 'custom_admin:settings_audit_log' %}?setting={{ setting.setting_name }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
+        <i class="fas fa-history mr-1"></i>
+        View History
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<!-- Breadcrumb -->
+<nav class="flex mb-6" aria-label="Breadcrumb">
+    <ol class="inline-flex items-center space-x-1 md:space-x-3">
+        <li class="inline-flex items-center">
+            <a href="{% url 'custom_admin:dashboard' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                <i class="fas fa-home mr-2"></i>
+                Dashboard
+            </a>
+        </li>
+        <li>
+            <div class="flex items-center">
+                <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                <a href="{% url 'custom_admin:settings_dashboard' %}" class="text-sm font-medium text-gray-700 hover:text-blue-600">Settings</a>
+            </div>
+        </li>
+        <li aria-current="page">
+            <div class="flex items-center">
+                <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                <span class="text-sm font-medium text-gray-500">{{ setting.setting_name }}</span>
+            </div>
+        </li>
+    </ol>
+</nav>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Main Edit Form -->
+    <div class="lg:col-span-2">
+        <div class="bg-white rounded-lg shadow-lg">
+            <!-- Header -->
+            <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-t-lg">
+                <h3 class="text-lg font-semibold flex items-center">
+                    <i class="fas fa-edit mr-2"></i>
+                    {{ setting.setting_name }}
+                </h3>
+                <p class="text-blue-100 text-sm mt-1">{{ setting.description|default:"Configure this system parameter" }}</p>
+            </div>
+
+            <!-- Form Content -->
+            <div class="p-6">
+                <form method="post" class="space-y-6">
+                    {% csrf_token %}
+
+                    <!-- Setting Basic Info -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Setting Key</label>
+                            <div class="relative">
+                                <input type="text"
+                                       value="{{ setting.setting_key }}"
+                                       class="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-600 cursor-not-allowed"
+                                       readonly>
+                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                                    <i class="fas fa-key text-gray-400"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Setting Type</label>
+                            <div class="relative">
+                                <input type="text"
+                                       value="{{ setting.setting_type|title }}"
+                                       class="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-600 cursor-not-allowed"
+                                       readonly>
+                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                                           {% if setting.setting_type == 'fee' %}bg-blue-100 text-blue-800
+                                           {% elif setting.setting_type == 'rate' %}bg-green-100 text-green-800
+                                           {% elif setting.setting_type == 'limit' %}bg-purple-100 text-purple-800
+                                           {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ setting.setting_type }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Current Value Display -->
+                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Current Value</label>
+                        <div class="flex items-center justify-between">
+                            <span class="text-2xl font-bold text-gray-900" id="current-value-display">{{ current_value }}</span>
+                            <div class="text-right">
+                                {% if setting.setting_type == 'rate' %}
+                                    <span class="text-sm text-gray-500">{{ current_value|floatformat:1 }}% commission rate</span>
+                                {% elif setting.setting_type == 'fee' %}
+                                    <span class="text-sm text-gray-500">KSh {{ current_value }} fee amount</span>
+                                {% elif setting.setting_type == 'limit' %}
+                                    <span class="text-sm text-gray-500">{{ current_value }} {{ setting.setting_name|lower }}</span>
+                                {% else %}
+                                    <span class="text-sm text-gray-500">{{ setting.setting_type }} value</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- New Value Input -->
+                    <div>
+                        <label for="value" class="block text-sm font-medium text-gray-700 mb-2">
+                            New Value <span class="text-red-500">*</span>
+                        </label>
+
+                        {% if setting.setting_type == 'config' and setting.boolean_value is not None %}
+                            <!-- Boolean Select -->
+                            <select name="value"
+                                    id="value"
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    required>
+                                <option value="true" {% if current_value %}selected{% endif %}>
+                                    <i class="fas fa-check-circle"></i> True (Enabled)
+                                </option>
+                                <option value="false" {% if not current_value %}selected{% endif %}>
+                                    <i class="fas fa-times-circle"></i> False (Disabled)
+                                </option>
+                            </select>
+                        {% else %}
+                            <!-- Text/Number Input -->
+                            <div class="relative">
+                                {% if setting.setting_type == 'fee' %}
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">KSh</span>
+                                    </div>
+                                    <input type="number"
+                                           name="value"
+                                           id="value"
+                                           step="0.01"
+                                           class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                           value="{{ current_value }}"
+                                           placeholder="Enter fee amount"
+                                           required>
+                                {% elif setting.setting_type == 'rate' %}
+                                    <input type="number"
+                                           name="value"
+                                           id="value"
+                                           step="0.001"
+                                           min="0"
+                                           max="1"
+                                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                           value="{{ current_value }}"
+                                           placeholder="Enter rate (0.0 - 1.0)"
+                                           required>
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">{{ current_value|floatformat:1 }}%</span>
+                                    </div>
+                                {% elif setting.setting_type == 'limit' %}
+                                    <input type="number"
+                                           name="value"
+                                           id="value"
+                                           min="1"
+                                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                           value="{{ current_value }}"
+                                           placeholder="Enter limit value"
+                                           required>
+                                {% else %}
+                                    <input type="text"
+                                           name="value"
+                                           id="value"
+                                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                           value="{{ current_value }}"
+                                           placeholder="Enter new value"
+                                           required>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+
+                        <!-- Constraints Information -->
+                        {% if setting.min_value is not None or setting.max_value is not None %}
+                        <div class="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div class="flex items-center">
+                                <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                                <span class="text-sm text-blue-800">
+                                    {% if setting.min_value is not None and setting.max_value is not None %}
+                                        Valid range: {{ setting.min_value }} - {{ setting.max_value }}
+                                    {% elif setting.min_value is not None %}
+                                        Minimum value: {{ setting.min_value }}
+                                    {% elif setting.max_value is not None %}
+                                        Maximum value: {{ setting.max_value }}
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Change Reason -->
+                    <div>
+                        <label for="reason" class="block text-sm font-medium text-gray-700 mb-2">
+                            Change Reason
+                            <span class="text-gray-500 text-sm font-normal">(optional)</span>
+                        </label>
+                        <textarea name="reason"
+                                  id="reason"
+                                  rows="3"
+                                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                                  placeholder="Briefly describe why you're making this change..."></textarea>
+                        <p class="mt-2 text-sm text-gray-500">
+                            <i class="fas fa-shield-alt mr-1"></i>
+                            This will be logged in the audit trail for security and compliance
+                        </p>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex items-center justify-between pt-6 border-t border-gray-200">
+                        <div class="flex space-x-3">
+                            <button type="submit"
+                                    class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-200">
+                                <i class="fas fa-save mr-2"></i>
+                                Update Setting
+                            </button>
+                            <a href="{% url 'custom_admin:settings_dashboard' %}"
+                               class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-6 py-3 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition duration-200">
+                                <i class="fas fa-times mr-2"></i>
+                                Cancel
+                            </a>
+                        </div>
+
+                        <!-- Preview Change -->
+                        <div id="change-preview" class="hidden">
+                            <span class="text-sm text-gray-600">Preview: </span>
+                            <span class="text-red-600 line-through" id="old-value">{{ current_value }}</span>
+                            <i class="fas fa-arrow-right mx-2 text-gray-400"></i>
+                            <span class="text-green-600 font-semibold" id="new-value"></span>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar Information -->
+    <div class="lg:col-span-1 space-y-6">
+        <!-- Setting Information Card -->
+        <div class="bg-white rounded-lg shadow-lg">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                    Setting Information
+                </h3>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="text-sm font-medium text-gray-500">Unique Key</label>
+                    <div class="mt-1 p-2 bg-gray-100 rounded border">
+                        <code class="text-sm text-gray-800">{{ setting.setting_key }}</code>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-sm font-medium text-gray-500">Type</label>
+                    <div class="mt-1">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                               {% if setting.setting_type == 'fee' %}bg-blue-100 text-blue-800
+                               {% elif setting.setting_type == 'rate' %}bg-green-100 text-green-800
+                               {% elif setting.setting_type == 'limit' %}bg-purple-100 text-purple-800
+                               {% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {% if setting.setting_type == 'fee' %}<i class="fas fa-money-bill-wave mr-1"></i>
+                            {% elif setting.setting_type == 'rate' %}<i class="fas fa-percentage mr-1"></i>
+                            {% elif setting.setting_type == 'limit' %}<i class="fas fa-tachometer-alt mr-1"></i>
+                            {% else %}<i class="fas fa-cog mr-1"></i>{% endif %}
+                            {{ setting.setting_type|title }}
+                        </span>
+                    </div>
+                </div>
+
+                {% if setting.min_value is not None %}
+                <div>
+                    <label class="text-sm font-medium text-gray-500">Minimum Value</label>
+                    <p class="mt-1 text-sm text-gray-900">{{ setting.min_value }}</p>
+                </div>
+                {% endif %}
+
+                {% if setting.max_value is not None %}
+                <div>
+                    <label class="text-sm font-medium text-gray-500">Maximum Value</label>
+                    <p class="mt-1 text-sm text-gray-900">{{ setting.max_value }}</p>
+                </div>
+                {% endif %}
+
+                <div>
+                    <label class="text-sm font-medium text-gray-500">Last Updated</label>
+                    <p class="mt-1 text-sm text-gray-900">{{ setting.updated_at|date:"M d, Y H:i" }}</p>
+                </div>
+
+                {% if setting.updated_by %}
+                <div>
+                    <label class="text-sm font-medium text-gray-500">Updated By</label>
+                    <div class="mt-1 flex items-center">
+                        <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mr-2">
+                            <i class="fas fa-user text-white text-xs"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-900">{{ setting.updated_by.get_full_name|default:setting.updated_by.username }}</p>
+                            <p class="text-xs text-gray-500">{{ setting.updated_by.username }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Quick Actions Card -->
+        <div class="bg-white rounded-lg shadow-lg">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-bolt text-yellow-500 mr-2"></i>
+                    Quick Actions
+                </h3>
+            </div>
+            <div class="p-6 space-y-3">
+                <a href="{% url 'custom_admin:settings_audit_log' %}?setting={{ setting.setting_name }}"
+                   class="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 px-4 py-3 rounded-lg text-sm font-medium transition duration-200 flex items-center">
+                    <i class="fas fa-history mr-2"></i>
+                    View Change History
+                </a>
+
+                <a href="{% url 'custom_admin:export_settings' %}"
+                   class="w-full bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 px-4 py-3 rounded-lg text-sm font-medium transition duration-200 flex items-center">
+                    <i class="fas fa-download mr-2"></i>
+                    Export All Settings
+                </a>
+
+                <button onclick="resetToDefault()"
+                        class="w-full bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 px-4 py-3 rounded-lg text-sm font-medium transition duration-200 flex items-center">
+                    <i class="fas fa-undo mr-2"></i>
+                    Reset to Default
+                </button>
+            </div>
+        </div>
+
+        <!-- Impact Warning -->
+        {% if setting.setting_type == 'fee' or setting.setting_type == 'rate' %}
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div class="flex">
+                <i class="fas fa-exclamation-triangle text-yellow-400 mr-2 mt-1"></i>
+                <div>
+                    <h4 class="text-sm font-medium text-yellow-800">Impact Warning</h4>
+                    <p class="mt-1 text-sm text-yellow-700">
+                        {% if setting.setting_type == 'fee' %}
+                            Changing registration fees affects new user onboarding and revenue calculations.
+                        {% else %}
+                            Modifying commission rates impacts referral earnings and platform economics.
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const valueInput = document.getElementById('value');
+    const settingType = '{{ setting.setting_type }}';
+    const changePreview = document.getElementById('change-preview');
+    const oldValueSpan = document.getElementById('old-value');
+    const newValueSpan = document.getElementById('new-value');
+    const currentValue = '{{ current_value }}';
+
+    // Auto-focus on the value field
+    valueInput.focus();
+
+    // Real-time preview of changes
+    valueInput.addEventListener('input', function() {
+        const newValue = this.value;
+        if (newValue && newValue !== currentValue) {
+            newValueSpan.textContent = newValue;
+            changePreview.classList.remove('hidden');
+        } else {
+            changePreview.classList.add('hidden');
+        }
+
+        // Live percentage display for rates
+        if (settingType === 'rate') {
+            const percentage = (parseFloat(newValue) * 100).toFixed(1);
+            const percentDisplay = document.querySelector('.absolute.inset-y-0.right-0 span');
+            if (percentDisplay) {
+                percentDisplay.textContent = percentage + '%';
+            }
+        }
+    });
+
+    // Input validation for numeric fields
+    if (settingType === 'fee' || settingType === 'rate' || settingType === 'limit') {
+        valueInput.addEventListener('input', function() {
+            const value = parseFloat(this.value);
+
+            {% if setting.min_value is not None %}
+            if (value < {{ setting.min_value }}) {
+                this.setCustomValidity('Value must be at least {{ setting.min_value }}');
+            } else {
+                this.setCustomValidity('');
+            }
+            {% endif %}
+
+            {% if setting.max_value is not None %}
+            if (value > {{ setting.max_value }}) {
+                this.setCustomValidity('Value must not exceed {{ setting.max_value }}');
+            } else {
+                this.setCustomValidity('');
+            }
+            {% endif %}
+        });
+    }
+
+    // Form submission confirmation
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const newValue = valueInput.value;
+        if (newValue !== currentValue) {
+            const confirmed = confirm(`Are you sure you want to change "${settingType}" from "${currentValue}" to "${newValue}"?`);
+            if (!confirmed) {
+                e.preventDefault();
+            }
+        }
+    });
+});
+
+function resetToDefault() {
+    if (confirm('Reset this setting to its default value? This action cannot be undone.')) {
+        // You can implement default value reset logic here
+        alert('Default value reset functionality would be implemented here');
+    }
+}
+</script>
+
+{% endblock %}

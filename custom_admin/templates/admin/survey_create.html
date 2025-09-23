@@ -1,0 +1,133 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Create Survey{% endblock %}
+
+{% block content %}
+<div class="flex-1 p-6">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex items-center space-x-4">
+            <a href="{% url 'custom_admin:surveys' %}"
+               class="text-gray-600 hover:text-gray-800">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Create New Survey</h1>
+                <p class="text-gray-600 mt-1">Build a new survey for your platform</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <div class="max-w-2xl">
+        <div class="bg-white rounded-lg shadow-sm border">
+            <div class="p-6">
+                <form method="post">
+                    {% csrf_token %}
+
+                    <!-- Survey Title -->
+                    <div class="mb-6">
+                        <label for="title" class="block text-sm font-medium text-gray-700 mb-2">
+                            Survey Title <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text"
+                               id="title"
+                               name="title"
+                               required
+                               maxlength="200"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="Enter survey title...">
+                        <p class="text-xs text-gray-500 mt-1">A clear, descriptive title for your survey</p>
+                    </div>
+
+                    <!-- Survey Description -->
+                    <div class="mb-6">
+                        <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
+                            Description <span class="text-red-500">*</span>
+                        </label>
+                        <textarea
+                            id="description"
+                            name="description"
+                            rows="4"
+                            required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="Describe what this survey is about..."></textarea>
+                        <p class="text-xs text-gray-500 mt-1">Explain the purpose and content of your survey to potential participants</p>
+                    </div>
+
+                    <!-- Payout Amount -->
+                    <div class="mb-6">
+                        <label for="payout" class="block text-sm font-medium text-gray-700 mb-2">
+                            Payout Amount (KSh) <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span class="text-gray-500 sm:text-sm">KSh</span>
+                            </div>
+                            <input type="number"
+                                   id="payout"
+                                   name="payout"
+                                   min="1"
+                                   step="0.01"
+                                   required
+                                   class="w-full pl-12 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                   placeholder="0.00">
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">Amount participants will earn for completing this survey</p>
+                    </div>
+
+                    <!-- Maximum Responses (Optional) -->
+                    <div class="mb-6">
+                        <label for="max_responses" class="block text-sm font-medium text-gray-700 mb-2">
+                            Maximum Responses (Optional)
+                        </label>
+                        <input type="number"
+                               id="max_responses"
+                               name="max_responses"
+                               min="1"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="Leave empty for unlimited">
+                        <p class="text-xs text-gray-500 mt-1">Limit the number of responses (leave empty for no limit)</p>
+                    </div>
+
+                    <!-- Survey Status -->
+                    <div class="mb-6">
+                        <label for="status" class="block text-sm font-medium text-gray-700 mb-2">
+                            Initial Status
+                        </label>
+                        <select id="status"
+                                name="status"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="draft" selected>Draft (Not visible to users)</option>
+                            <option value="active">Active (Immediately available)</option>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-1">You can change this status later after adding questions</p>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="flex justify-between pt-6 border-t">
+                        <a href="{% url 'custom_admin:surveys' %}"
+                           class="bg-gray-300 text-gray-700 px-6 py-2 rounded hover:bg-gray-400">
+                            Cancel
+                        </a>
+                        <button type="submit" class="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600">
+                            Create Survey
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Help Information -->
+        <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h3 class="text-sm font-medium text-blue-800 mb-2">Next Steps After Creation</h3>
+            <div class="text-sm text-blue-700 space-y-1">
+                <p>1. <strong>Add Questions:</strong> Use the question management interface to add survey questions</p>
+                <p>2. <strong>Test Survey:</strong> Review your survey before activating</p>
+                <p>3. <strong>Activate:</strong> Make the survey available to participants</p>
+                <p>4. <strong>Monitor:</strong> Track responses and manage payouts</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

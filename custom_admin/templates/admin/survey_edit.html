@@ -1,0 +1,195 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Edit Survey - {{ survey.title }}{% endblock %}
+
+{% block content %}
+<div class="flex-1 p-6">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex items-center space-x-4">
+            <a href="{% url 'custom_admin:survey_detail' survey.id %}"
+               class="text-gray-600 hover:text-gray-800">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Edit Survey</h1>
+                <p class="text-gray-600 mt-1">{{ survey.title }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Survey Status Warning -->
+    {% if survey.status == 'active' %}
+    <div class="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <div class="flex items-center">
+            <i class="fas fa-exclamation-triangle text-yellow-500 mr-3"></i>
+            <div>
+                <h3 class="text-sm font-medium text-yellow-800">Survey is Active</h3>
+                <p class="text-sm text-yellow-700 mt-1">
+                    This survey is currently active and accepting responses. Changes may affect ongoing submissions.
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Form -->
+    <div class="max-w-2xl">
+        <div class="bg-white rounded-lg shadow-sm border">
+            <div class="p-6">
+                <form method="post">
+                    {% csrf_token %}
+
+                    <!-- Survey Title -->
+                    <div class="mb-6">
+                        <label for="title" class="block text-sm font-medium text-gray-700 mb-2">
+                            Survey Title <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text"
+                               id="title"
+                               name="title"
+                               value="{{ survey.title }}"
+                               required
+                               maxlength="200"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="Enter survey title...">
+                        <p class="text-xs text-gray-500 mt-1">A clear, descriptive title for your survey</p>
+                    </div>
+
+                    <!-- Survey Description -->
+                    <div class="mb-6">
+                        <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
+                            Description <span class="text-red-500">*</span>
+                        </label>
+                        <textarea
+                            id="description"
+                            name="description"
+                            rows="4"
+                            required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="Describe what this survey is about...">{{ survey.description }}</textarea>
+                        <p class="text-xs text-gray-500 mt-1">Explain the purpose and content of your survey to potential participants</p>
+                    </div>
+
+                    <!-- Payout Amount -->
+                    <div class="mb-6">
+                        <label for="payout" class="block text-sm font-medium text-gray-700 mb-2">
+                            Payout Amount (KSh) <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span class="text-gray-500 sm:text-sm">KSh</span>
+                            </div>
+                            <input type="number"
+                                   id="payout"
+                                   name="payout"
+                                   value="{{ survey.payout }}"
+                                   min="1"
+                                   step="0.01"
+                                   required
+                                   class="w-full pl-12 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                   placeholder="0.00">
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">Amount participants will earn for completing this survey</p>
+                    </div>
+
+                    <!-- Maximum Responses (Optional) -->
+                    <div class="mb-6">
+                        <label for="max_responses" class="block text-sm font-medium text-gray-700 mb-2">
+                            Maximum Responses (Optional)
+                        </label>
+                        <input type="number"
+                               id="max_responses"
+                               name="max_responses"
+                               value="{{ survey.max_responses|default:'' }}"
+                               min="1"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="Leave empty for unlimited">
+                        <p class="text-xs text-gray-500 mt-1">Limit the number of responses (leave empty for no limit)</p>
+                        {% if survey.total_responses > 0 %}
+                            <p class="text-xs text-blue-600 mt-1">
+                                Current responses: {{ survey.total_responses }}
+                                {% if survey.max_responses and survey.total_responses >= survey.max_responses %}
+                                    (Limit reached)
+                                {% endif %}
+                            </p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Survey Status -->
+                    <div class="mb-6">
+                        <label for="status" class="block text-sm font-medium text-gray-700 mb-2">
+                            Survey Status
+                        </label>
+                        <select id="status"
+                                name="status"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="draft" {% if survey.status == 'draft' %}selected{% endif %}>Draft (Not visible to users)</option>
+                            <option value="active" {% if survey.status == 'active' %}selected{% endif %}>Active (Available to participants)</option>
+                            <option value="paused" {% if survey.status == 'paused' %}selected{% endif %}>Paused (Temporarily unavailable)</option>
+                            <option value="completed" {% if survey.status == 'completed' %}selected{% endif %}>Completed (No longer accepting responses)</option>
+                            <option value="closed" {% if survey.status == 'closed' %}selected{% endif %}>Closed (Permanently closed)</option>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-1">Control survey availability to participants</p>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="flex justify-between pt-6 border-t">
+                        <div class="flex space-x-3">
+                            <a href="{% url 'custom_admin:survey_detail' survey.id %}"
+                               class="bg-gray-300 text-gray-700 px-6 py-2 rounded hover:bg-gray-400">
+                                Cancel
+                            </a>
+                        </div>
+                        <div class="flex space-x-3">
+                            <a href="{% url 'custom_admin:survey_questions' survey.id %}"
+                               class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                                <i class="fas fa-question-circle mr-1"></i>Manage Questions
+                            </a>
+                            <button type="submit" class="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600">
+                                Update Survey
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Survey Statistics -->
+        {% if survey.total_responses > 0 %}
+        <div class="mt-6 bg-white rounded-lg shadow-sm border p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Survey Statistics</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-gray-50 p-3 rounded">
+                    <p class="text-sm text-gray-600">Total Responses</p>
+                    <p class="text-xl font-bold text-gray-900">{{ survey.total_responses }}</p>
+                </div>
+                <div class="bg-gray-50 p-3 rounded">
+                    <p class="text-sm text-gray-600">Questions</p>
+                    <p class="text-xl font-bold text-gray-900">{{ survey.questions.count }}</p>
+                </div>
+                <div class="bg-gray-50 p-3 rounded">
+                    <p class="text-sm text-gray-600">Total Payout</p>
+                    <p class="text-xl font-bold text-gray-900">KSh {{ survey.total_payout_cost|default:0 }}</p>
+                </div>
+                <div class="bg-gray-50 p-3 rounded">
+                    <p class="text-sm text-gray-600">Avg. Completion</p>
+                    <p class="text-xl font-bold text-gray-900">95%</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Help Information -->
+        <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h3 class="text-sm font-medium text-blue-800 mb-2">Survey Management Tips</h3>
+            <div class="text-sm text-blue-700 space-y-1">
+                <p><strong>Draft:</strong> Survey is hidden from users, perfect for building and testing</p>
+                <p><strong>Active:</strong> Survey is live and accepting responses from participants</p>
+                <p><strong>Paused:</strong> Temporarily stop accepting new responses</p>
+                <p><strong>Completed/Closed:</strong> Permanently stop accepting responses</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

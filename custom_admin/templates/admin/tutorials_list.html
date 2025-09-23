@@ -1,0 +1,399 @@
+<!-- custom_admin/templates/admin/tutorials_list.html -->
+{% extends 'admin/base.html' %}
+{% load static %}
+
+{% block title %}Manage Tutorials{% endblock %}
+
+{% block page_title %}Manage Tutorials{% endblock %}
+{% block page_description %}Create, edit, and manage video tutorials with quiz systems{% endblock %}
+
+{% block page_actions %}
+<div class="flex space-x-3">
+    <a href="{% url 'custom_admin:tutorial_create' %}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
+        <i class="fas fa-plus mr-2"></i>Create Tutorial
+    </a>
+    <a href="{% url 'custom_admin:tutorials_dashboard' %}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors">
+        <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Filters -->
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+    <form method="get" class="grid grid-cols-1 md:grid-cols-6 gap-4">
+        <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Search Tutorials</label>
+            <input type="text"
+                   name="search"
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                   placeholder="Search tutorials..."
+                   value="{{ current_search|default:'' }}">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+            <select name="category" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">All Categories</option>
+                {% for category in categories %}
+                    <option value="{{ category.id }}"
+                            {% if current_category == category.id|stringformat:"s" %}selected{% endif %}>
+                        {{ category.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+            <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">All Status</option>
+                <option value="published" {% if current_status == 'published' %}selected{% endif %}>Published</option>
+                <option value="draft" {% if current_status == 'draft' %}selected{% endif %}>Draft</option>
+            </select>
+        </div>
+        <div class="flex items-end space-x-2">
+            <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors">
+                <i class="fas fa-search mr-2"></i>Filter
+            </button>
+            <a href="{% url 'custom_admin:tutorials_list' %}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md transition-colors">
+                <i class="fas fa-times mr-2"></i>Clear
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Bulk Actions -->
+<div id="bulkActions" class="hidden bg-gray-100 border border-gray-200 rounded-lg p-4 mb-6">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+            <span id="selectedCount" class="text-sm font-medium text-gray-700">0 selected</span>
+        </div>
+        <div class="flex space-x-2">
+            <button onclick="bulkAction('publish')" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm transition-colors">
+                <i class="fas fa-check mr-1"></i>Publish
+            </button>
+            <button onclick="bulkAction('unpublish')" class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm transition-colors">
+                <i class="fas fa-pause mr-1"></i>Unpublish
+            </button>
+            <button onclick="bulkAction('delete')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm transition-colors">
+                <i class="fas fa-trash mr-1"></i>Delete
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Tutorials Table -->
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left">
+                        <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Video</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tutorial</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for tutorial in page_obj %}
+                {% if tutorial.id %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4">
+                        <input type="checkbox" class="tutorial-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500" value="{{ tutorial.id }}">
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="w-16 h-10 bg-gray-200 rounded flex items-center justify-center">
+                            {% if tutorial.video_source == 'url' %}
+                                <i class="fas fa-external-link-alt text-blue-500" title="External Video"></i>
+                            {% elif tutorial.video_source == 'upload' %}
+                                <i class="fas fa-upload text-green-500" title="Uploaded Video"></i>
+                            {% else %}
+                                <i class="fas fa-play text-gray-400"></i>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div>
+                            <div class="text-sm font-medium text-gray-900">{{ tutorial.title|default:"Untitled" }}</div>
+                            {% if tutorial.description %}
+                                <div class="text-sm text-gray-500">{{ tutorial.description|truncatewords:8 }}</div>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if tutorial.category %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                {{ tutorial.category.name }}
+                            </span>
+                        {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+                                Uncategorized
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-900">
+                        {% if tutorial.duration %}
+                            {{ tutorial.duration }}
+                        {% else %}
+                            <span class="text-gray-400">--</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if tutorial.video_source == 'url' %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                <i class="fas fa-link mr-1"></i>URL
+                            </span>
+                        {% elif tutorial.video_source == 'upload' %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                <i class="fas fa-file-video mr-1"></i>Upload
+                            </span>
+                        {% else %}
+                            <span class="text-gray-400">--</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if tutorial.is_published %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                <i class="fas fa-check-circle mr-1"></i>Published
+                            </span>
+                        {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                <i class="fas fa-edit mr-1"></i>Draft
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex space-x-2">
+                            <a href="{% url 'custom_admin:tutorial_detail' tutorial.id %}"
+                               class="text-blue-600 hover:text-blue-900 transition-colors"
+                               title="View Details">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{% url 'custom_admin:tutorial_edit' tutorial.id %}"
+                               class="text-gray-600 hover:text-gray-900 transition-colors"
+                               title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <form method="post"
+                                  action="{% url 'custom_admin:tutorial_toggle_status' tutorial.id %}"
+                                  style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit"
+                                        class="{% if tutorial.is_published %}text-yellow-600 hover:text-yellow-900{% else %}text-green-600 hover:text-green-900{% endif %} transition-colors"
+                                        title="{% if tutorial.is_published %}Unpublish{% else %}Publish{% endif %}"
+                                        onclick="return confirm('Are you sure?')">
+                                    <i class="fas fa-{% if tutorial.is_published %}pause{% else %}play{% endif %}"></i>
+                                </button>
+                            </form>
+                            <form method="post"
+                                  action="{% url 'custom_admin:tutorial_delete' tutorial.id %}"
+                                  style="display: inline;"
+                                  onsubmit="return confirm('Are you sure you want to delete this tutorial? This cannot be undone.')">
+                                {% csrf_token %}
+                                <button type="submit"
+                                        class="text-red-600 hover:text-red-900 transition-colors"
+                                        title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endif %}
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="px-6 py-12 text-center">
+                        <div class="text-gray-500">
+                            <i class="fas fa-video text-4xl mb-4"></i>
+                            <h3 class="text-lg font-medium mb-2">No tutorials found</h3>
+                            {% if current_search or current_category or current_status %}
+                                <p class="mb-4">Try adjusting your filters</p>
+                                <a href="{% url 'custom_admin:tutorials_list' %}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
+                                    Clear filters
+                                </a>
+                            {% else %}
+                                <p class="mb-4">Create your first tutorial to get started</p>
+                                <a href="{% url 'custom_admin:tutorial_create' %}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
+                                    Create Tutorial
+                                </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
+        <div class="flex items-center justify-between">
+            <div class="flex-1 flex justify-between sm:hidden">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}{% if current_search %}&search={{ current_search }}{% endif %}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}"
+                       class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        Previous
+                    </a>
+                {% endif %}
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if current_search %}&search={{ current_search }}{% endif %}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}"
+                       class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        Next
+                    </a>
+                {% endif %}
+            </div>
+            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                    <p class="text-sm text-gray-700">
+                        Showing page <span class="font-medium">{{ page_obj.number }}</span> of <span class="font-medium">{{ page_obj.paginator.num_pages }}</span>
+                        ({{ page_obj.paginator.count }} total tutorials)
+                    </p>
+                </div>
+                <div>
+                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                        {% if page_obj.has_previous %}
+                            <a href="?page={{ page_obj.previous_page_number }}{% if current_search %}&search={{ current_search }}{% endif %}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}"
+                               class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                <span class="sr-only">Previous</span>
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        {% endif %}
+
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                                <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-blue-50 text-sm font-medium text-blue-600">
+                                    {{ num }}
+                                </span>
+                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                <a href="?page={{ num }}{% if current_search %}&search={{ current_search }}{% endif %}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}"
+                                   class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                    {{ num }}
+                                </a>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}{% if current_search %}&search={{ current_search }}{% endif %}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}"
+                               class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                <span class="sr-only">Next</span>
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        {% endif %}
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let selectedTutorials = [];
+
+function toggleSelectAll() {
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.tutorial-checkbox');
+
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAll.checked;
+    });
+
+    updateBulkActions();
+}
+
+function updateBulkActions() {
+    const checkboxes = document.querySelectorAll('.tutorial-checkbox:checked');
+    selectedTutorials = Array.from(checkboxes).map(cb => cb.value);
+
+    const bulkActions = document.getElementById('bulkActions');
+    const selectedCount = document.getElementById('selectedCount');
+
+    if (selectedTutorials.length > 0) {
+        bulkActions.classList.remove('hidden');
+        selectedCount.textContent = `${selectedTutorials.length} selected`;
+    } else {
+        bulkActions.classList.add('hidden');
+    }
+}
+
+function bulkAction(action) {
+    if (selectedTutorials.length === 0) {
+        alert('Please select tutorials first');
+        return;
+    }
+
+    let confirmMessage = '';
+    switch(action) {
+        case 'publish':
+            confirmMessage = `Publish ${selectedTutorials.length} tutorials?`;
+            break;
+        case 'unpublish':
+            confirmMessage = `Unpublish ${selectedTutorials.length} tutorials?`;
+            break;
+        case 'delete':
+            confirmMessage = `Delete ${selectedTutorials.length} tutorials? This cannot be undone.`;
+            break;
+    }
+
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+
+    fetch('{% url "custom_admin:bulk_tutorial_actions" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            action: action,
+            tutorial_ids: selectedTutorials
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred');
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('.tutorial-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateBulkActions);
+    });
+});
+</script>
+{% endblock %}

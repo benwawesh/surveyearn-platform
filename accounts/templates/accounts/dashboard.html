@@ -1,0 +1,555 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}Dashboard - SurveyEarn{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Welcome Section -->
+    <div class="bg-white shadow-sm rounded-lg border border-gray-200 p-6 mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Welcome back, {{ user.first_name|default:user.username }}!</h1>
+                <p class="text-gray-600 mt-2">Here's your SurveyEarn overview</p>
+            </div>
+            <div class="flex-shrink-0">
+                <div class="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xl font-bold">
+                    {{ user.username|slice:":2"|upper }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Completion Alert -->
+        {% if not user.profile_completed %}
+        <div class="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-yellow-800">Complete your profile to start earning!</h3>
+                    <div class="mt-2 text-sm text-yellow-700">
+                        <p>Your profile is 33% complete. Finish it to unlock surveys.</p>
+                        <ul class="mt-1 list-disc pl-5">
+                            {% if not user.email_verified %}
+                            <li>Email address not verified</li>
+                            {% endif %}
+                            {% if not user.date_of_birth %}
+                            <li>Date of birth not provided</li>
+                            {% endif %}
+                            {% if not user.profile_completed %}
+                            <li>Profile not completed</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                    <div class="mt-4">
+                        <a href="{% url 'accounts:profile_complete' %}" class="bg-yellow-600 text-white px-4 py-2 rounded-md hover:bg-yellow-700 transition-colors text-sm">
+                            Complete Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Enhanced Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- Current Balance -->
+        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-green-100 text-green-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Current Balance</p>
+                    <div class="flex items-center mt-1">
+                        <p class="text-2xl font-bold text-gray-900">KSh {{ user.balance|floatformat:2 }}</p>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Minimum KSh 10.0</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Surveys Completed -->
+        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Surveys Completed</p>
+                    <div class="flex items-center mt-1">
+                        <p class="text-2xl font-bold text-gray-900">{{ user.total_surveys_completed }}</p>
+                        <span class="ml-2 text-xs text-green-600">+1 this month</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Earnings -->
+        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-purple-100 text-purple-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Total Earnings</p>
+                    <div class="flex items-center mt-1">
+                        <p class="text-2xl font-bold text-gray-900">KSh {{ user.total_earnings|floatformat:2 }}</p>
+                        <span class="ml-2 text-xs text-green-600">KSh 0.00 this month</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Available Surveys -->
+        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-orange-100 text-orange-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Available Surveys</p>
+                    <div class="flex items-center mt-1">
+                        <p class="text-2xl font-bold text-gray-900">{{ available_surveys.count|default:0 }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional Stats Row -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-gray-100 text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Total Withdrawn</p>
+                    <p class="text-2xl font-bold text-gray-900">KSh 0.00</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-yellow-100 text-yellow-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Pending</p>
+                    <p class="text-2xl font-bold text-gray-900">KSh 0.00</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-indigo-100 text-indigo-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">This Month</p>
+                    <p class="text-2xl font-bold text-gray-900">KSh 0.00</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Methods Section -->
+    <div class="bg-white shadow-sm rounded-lg border border-gray-200 p-6 mb-8">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-medium text-gray-900">Payment Methods</h3>
+            <button class="text-blue-600 hover:text-blue-800 text-sm font-medium">+ Add Method</button>
+        </div>
+        <div class="space-y-3">
+            <!-- Static Payment Methods for demo -->
+            <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                        <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"></path>
+                            <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-900">M-Pesa</p>
+                        <p class="text-xs text-gray-500">•••• •••• •••• 1234</p>
+                    </div>
+                </div>
+                <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">Default</span>
+            </div>
+
+            <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                        <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"></path>
+                            <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-900">M-Pesa</p>
+                        <p class="text-xs text-gray-500">•••• •••• •••• 1234</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                        <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"></path>
+                            <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-900">M-Pesa</p>
+                        <p class="text-xs text-gray-500">•••• •••• •••• 1234</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Available Surveys -->
+        <div class="lg:col-span-2">
+            <div class="bg-white shadow-sm rounded-lg border border-gray-200">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-lg font-medium text-gray-900">Available Surveys</h3>
+                        <a href="{% url 'surveys:survey_list' %}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">View All</a>
+                    </div>
+                </div>
+
+                {% if user.profile_completed %}
+                    {% if available_surveys %}
+                    <div class="divide-y divide-gray-200">
+                        {% for survey in available_surveys %}
+                        <div class="p-6 hover:bg-gray-50 transition-colors">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <h4 class="text-lg font-medium text-gray-900 mb-2">{{ survey.title }}</h4>
+                                    <p class="text-gray-600 text-sm mb-3">{{ survey.description|truncatewords:20 }}</p>
+                                    <div class="flex items-center space-x-4 text-sm text-gray-500">
+                                        <span class="flex items-center">
+                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                                            </svg>
+                                            KSh {{ survey.payout }}
+                                        </span>
+                                        <span class="flex items-center">
+                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                            </svg>
+                                            {{ survey.responses.count }} responses
+                                        </span>
+                                        <span class="flex items-center">
+                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                            </svg>
+                                            {{ survey.questions.count }} questions
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="ml-4">
+                                    <a href="{% url 'surveys:take' survey.id %}"
+                                       class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors text-sm">
+                                        Take Survey
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="p-8 text-center text-gray-500">
+                        <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">No surveys available</h3>
+                        <p>Check back later for new earning opportunities!</p>
+                    </div>
+                    {% endif %}
+                {% else %}
+                <div class="p-8 text-center">
+                    <svg class="mx-auto h-12 w-12 text-yellow-400 mb-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                    </svg>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Complete your profile first</h3>
+                    <p class="text-gray-600 mb-4">You need to complete your profile before you can take surveys.</p>
+                    <a href="{% url 'accounts:profile_complete' %}" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
+                        Complete Profile
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Recent Activity -->
+            <div class="bg-white shadow-sm rounded-lg border border-gray-200">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-medium text-gray-900">Recent Activity</h3>
+                </div>
+                <div class="divide-y divide-gray-200">
+                    {% for transaction in recent_transactions %}
+                    <div class="p-4">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">{{ transaction.get_transaction_type_display }}</p>
+                                <p class="text-sm text-gray-500">{{ transaction.created_at|date:"M d, g:i A" }}</p>
+                            </div>
+                            <div class="text-sm font-medium {% if transaction.transaction_type == 'survey_payment' %}text-green-600{% else %}text-red-600{% endif %}">
+                                {% if transaction.transaction_type == 'survey_payment' %}+{% else %}-{% endif %} KSh {{ transaction.amount }}
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="p-4 text-center text-gray-500">
+                        <p class="text-sm">No recent activity</p>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% if recent_transactions %}
+                <div class="px-6 py-3 border-t border-gray-200">
+                    <a href="{% url 'accounts:transactions' %}" class="text-sm text-blue-600 hover:text-blue-800">View all transactions →</a>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="bg-white shadow-sm rounded-lg border border-gray-200 p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
+                <div class="space-y-3">
+                    <a href="{% url 'surveys:survey_list' %}"
+                       class="w-full flex items-center px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                        <svg class="w-5 h-5 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <span class="text-sm font-medium text-gray-900">Browse Surveys</span>
+                    </a>
+
+                    <a href="{% url 'accounts:profile' %}"
+                       class="w-full flex items-center px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                        <svg class="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        </svg>
+                        <span class="text-sm font-medium text-gray-900">Edit Profile</span>
+                    </a>
+
+                    <a href="{% url 'accounts:withdrawals' %}"
+                       class="w-full flex items-center px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                        <svg class="w-5 h-5 text-purple-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                        </svg>
+                        <span class="text-sm font-medium text-gray-900">Request Withdrawal</span>
+                    </a>
+
+                    <a href="{% url 'accounts:transactions' %}"
+                       class="w-full flex items-center px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                        <svg class="w-5 h-5 text-orange-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                        <span class="text-sm font-medium text-gray-900">View Transactions</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Profile Completion Progress -->
+            {% if not user.profile_completed %}
+            <div class="bg-white shadow-sm rounded-lg border border-gray-200 p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Profile Completion</h3>
+                <div class="mb-4">
+                    <div class="flex justify-between text-sm text-gray-600 mb-2">
+                        <span>Progress</span>
+                        <span>33%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 33%"></div>
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <div class="flex items-center text-sm">
+                        <svg class="w-4 h-4 mr-2 {% if user.first_name %}text-green-500{% else %}text-gray-400{% endif %}" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="{% if user.first_name %}text-gray-700{% else %}text-gray-500{% endif %}">Basic Information</span>
+                    </div>
+                    <div class="flex items-center text-sm">
+                        <svg class="w-4 h-4 mr-2 {% if user.date_of_birth %}text-green-500{% else %}text-gray-400{% endif %}" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="{% if user.date_of_birth %}text-gray-700{% else %}text-gray-500{% endif %}">Date of Birth</span>
+                    </div>
+                    <div class="flex items-center text-sm">
+                        <svg class="w-4 h-4 mr-2 {% if user.email_verified %}text-green-500{% else %}text-gray-400{% endif %}" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="{% if user.email_verified %}text-gray-700{% else %}text-gray-500{% endif %}">Email Verification</span>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <a href="{% url 'accounts:profile_complete' %}" class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors text-center block">
+                        Complete Profile
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Withdrawal History -->
+            <div class="bg-white shadow-sm rounded-lg border border-gray-200">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-medium text-gray-900">Withdrawal History</h3>
+                </div>
+                <div class="p-6 text-center text-gray-500">
+                    <svg class="mx-auto h-8 w-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                    </svg>
+                    <p class="text-sm">No withdrawals yet</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Survey Completions -->
+    {% if recent_responses %}
+    <div class="mt-8 bg-white shadow-sm rounded-lg border border-gray-200">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-medium text-gray-900">Recent Survey Completions</h3>
+                <a href="{% url 'surveys:survey_list' %}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">View All</a>
+            </div>
+        </div>
+        <div class="divide-y divide-gray-200">
+            {% for response in recent_responses %}
+            <div class="p-6">
+                <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                        <h4 class="text-lg font-medium text-gray-900 mb-1">{{ response.survey.title }}</h4>
+                        <p class="text-gray-600 text-sm mb-2">Completed {{ response.completed_at|date:"M d, Y \a\t g:i A" }}</p>
+                        <div class="flex items-center space-x-4 text-sm text-gray-500">
+                            <span class="flex items-center">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>
+                                {{ response.answers.count }} answers
+                            </span>
+                            <span class="flex items-center">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                Survey ID: {{ response.survey.id|slice:":8" }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="ml-4 text-right">
+                        <div class="text-lg font-bold text-green-600">KSh {{ response.payout_amount|floatformat:2 }}</div>
+                        <div class="text-sm text-gray-500">Earned</div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <!-- Key Benefits Section when no recent responses -->
+    <div class="mt-8 bg-white shadow-sm rounded-lg border border-gray-200 p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Key Benefits</h3>
+        <div class="text-center mb-6">
+            <p class="text-gray-600">Start earning today by completing surveys!</p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="text-center">
+                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                    </svg>
+                </div>
+                <h4 class="text-sm font-medium text-gray-900">Earn Money</h4>
+                <p class="text-xs text-gray-500 mt-1">Get paid for completing surveys</p>
+            </div>
+            <div class="text-center">
+                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <h4 class="text-sm font-medium text-gray-900">Flexible Schedule</h4>
+                <p class="text-xs text-gray-500 mt-1">Work at your own pace</p>
+            </div>
+            <div class="text-center">
+                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                    </svg>
+                </div>
+                <h4 class="text-sm font-medium text-gray-900">Quick Withdrawals</h4>
+                <p class="text-xs text-gray-500 mt-1">Fast M-Pesa payments</p>
+            </div>
+        </div>
+
+        <!-- Call to Action -->
+        <div class="mt-6 pt-6 border-t border-gray-200 text-center">
+            {% if user.profile_completed %}
+            <a href="{% url 'surveys:survey_list' %}" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                Browse Available Surveys
+            </a>
+            {% else %}
+            <a href="{% url 'accounts:profile_complete' %}" class="inline-flex items-center px-6 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors font-medium">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                </svg>
+                Complete Your Profile First
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Footer Stats -->
+    <div class="mt-8 bg-gray-50 rounded-lg p-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
+            <div>
+                <p class="text-2xl font-bold text-gray-900">{{ user.total_surveys_completed }}</p>
+                <p class="text-sm text-gray-600">Surveys Completed</p>
+            </div>
+            <div>
+                <p class="text-2xl font-bold text-gray-900">KSh {{ user.balance|floatformat:2 }}</p>
+                <p class="text-sm text-gray-600">Current Balance</p>
+            </div>
+            <div>
+                <p class="text-2xl font-bold text-gray-900">KSh {{ user.total_earnings|floatformat:2 }}</p>
+                <p class="text-sm text-gray-600">Total Earned</p>
+            </div>
+            <div>
+                <p class="text-2xl font-bold text-gray-900">{{ available_surveys.count|default:0 }}</p>
+                <p class="text-sm text-gray-600">Available Surveys</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

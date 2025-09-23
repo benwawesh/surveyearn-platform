@@ -1,0 +1,560 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ page_title }} - SurveyEarn Admin{% endblock %}
+
+{% block extra_head %}
+<style>
+    .quiz-question {
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        background-color: #f9fafb;
+    }
+    .quiz-answer {
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        background-color: #ffffff;
+    }
+    .correct-answer {
+        border-color: #10b981;
+        background-color: #ecfdf5;
+    }
+    .video-preview {
+        aspect-ratio: 16/9;
+        background-color: #f3f4f6;
+        border: 2px dashed #d1d5db;
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">{{ page_title }}</h1>
+            <p class="text-gray-600">Create and manage video tutorials with optional quizzes</p>
+        </div>
+        <a href="{% url 'custom_admin:tutorials_list' %}"
+           class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors">
+            <i class="fas fa-arrow-left mr-2"></i>Back to List
+        </a>
+    </div>
+
+    <!-- Form -->
+    <form method="post" enctype="multipart/form-data" class="space-y-6">
+        {% csrf_token %}
+
+        <!-- Basic Information -->
+        <div class="bg-white rounded-lg shadow-sm border p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Basic Information</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Title <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" name="title" required
+                           value="{% if tutorial %}{{ tutorial.title }}{% endif %}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           placeholder="Enter tutorial title">
+                </div>
+
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                    <textarea name="description" rows="4"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="Brief description of the tutorial">{% if tutorial %}{{ tutorial.description }}{% endif %}</textarea>
+                </div>
+
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Category (Optional)
+                    </label>
+                    <select name="category"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">No Category</option>
+                        {% for category in categories %}
+                            <option value="{{ category.id }}"
+                                    {% if tutorial and tutorial.category_id == category.id %}selected{% endif %}>
+                                {{ category.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">
+                        Categories help organize tutorials but are not required
+                    </p>
+                    {% if not categories %}
+                    <div class="mt-2 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                        <div class="flex items-center">
+                            <i class="fas fa-info-circle text-amber-500 mr-2"></i>
+                            <span class="text-sm text-amber-800">
+                                No categories available.
+                                <a href="{% url 'custom_admin:categories_list' %}"
+                                   class="text-amber-600 hover:text-amber-700 underline">
+                                    Create categories
+                                </a> to organize your tutorials.
+                            </span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Hidden field for no reward -->
+            <input type="hidden" name="completion_reward" value="0">
+
+            <div class="flex items-center space-x-6 mt-6">
+                <label class="flex items-center">
+                    <input type="checkbox" name="is_published"
+                           {% if tutorial and tutorial.is_published %}checked{% endif %}
+                           class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                    <span class="ml-2 text-sm text-gray-700">Published</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Video Settings -->
+        <div class="bg-white rounded-lg shadow-sm border p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Video Settings</h2>
+
+            <!-- Video Source Selection -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-3">Video Source</label>
+                <div class="flex space-x-4">
+                    <label class="flex items-center">
+                        <input type="radio" name="video_source" value="url"
+                               {% if not tutorial or tutorial.video_source == 'url' %}checked{% endif %}
+                               class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                               onchange="toggleVideoSource()">
+                        <span class="ml-2 text-sm text-gray-700">External URL</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="radio" name="video_source" value="upload"
+                               {% if tutorial and tutorial.video_source == 'upload' %}checked{% endif %}
+                               class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                               onchange="toggleVideoSource()">
+                        <span class="ml-2 text-sm text-gray-700">Upload File</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- URL Input Section -->
+            <div id="url_section" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Video URL</label>
+                    <input type="url" name="video_url" id="video_url"
+                           value="{% if tutorial %}{{ tutorial.video_url }}{% endif %}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           placeholder="https://youtube.com/watch?v=... or https://vimeo.com/..."
+                           onchange="previewVideo()">
+                    <p class="text-xs text-gray-500 mt-1">Supports YouTube, Vimeo, and direct video URLs</p>
+                </div>
+            </div>
+
+            <!-- File Upload Section -->
+            <div id="upload_section" class="grid grid-cols-1 md:grid-cols-2 gap-6" style="display: none;">
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Upload Video File</label>
+                    <div class="relative">
+                        <input type="file" name="video_file" id="video_file" accept="video/mp4,video/webm,video/avi,video/mov,video/mkv"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                               onchange="handleFileUpload(this)">
+                        <div class="mt-2 text-xs text-gray-500">
+                            <p>Supported formats: MP4, WebM, AVI, MOV, MKV</p>
+                            <p>Maximum file size: 500MB</p>
+                        </div>
+                    </div>
+
+                    <!-- Current File Display (for edit mode) -->
+                    {% if tutorial and tutorial.video_file %}
+                    <div class="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                        <div class="flex items-center space-x-2">
+                            <i class="fas fa-file-video text-green-600"></i>
+                            <span class="text-sm text-green-800">Current file: {{ tutorial.video_file.name }}</span>
+                            <span class="text-xs text-green-600">({{ tutorial.video_file.size|filesizeformat }})</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Duration Input -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Duration (automatically detected)
+                    </label>
+                    <div class="flex items-center space-x-2">
+                        <input type="number" name="video_duration" min="0" id="duration_input"
+                               value="{% if tutorial and tutorial.video_duration %}{{ tutorial.video_duration.total_seconds|floatformat:0 }}{% else %}0{% endif %}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
+                               readonly>
+                        <span class="text-xs text-gray-500" id="duration_display">
+                            (0m 0s)
+                        </span>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Duration will be automatically detected from the video</p>
+                </div>
+            </div>
+
+            <!-- Video Preview -->
+            <div class="md:col-span-2 mt-6">
+                <div class="video-preview" id="video_preview">
+                    {% if tutorial %}
+                        {% if tutorial.video_source == 'upload' and tutorial.video_file %}
+                            <video controls class="w-full h-full rounded">
+                                <source src="{{ tutorial.video_file.url }}" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        {% elif tutorial.video_source == 'url' and tutorial.video_url %}
+                            <script>
+                                document.addEventListener('DOMContentLoaded', function() {
+                                    previewVideo();
+                                });
+                            </script>
+                        {% endif %}
+                    {% else %}
+                        <p class="text-gray-500">Video preview will appear here</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Quiz Settings -->
+        <div class="bg-white rounded-lg shadow-sm border p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Quiz Settings</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="flex items-center">
+                        <input type="checkbox" name="quiz_required" id="quiz_required"
+                               {% if tutorial and tutorial.quiz_required %}checked{% endif %}
+                               class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                               onchange="toggleQuizSection()">
+                        <span class="ml-2 text-sm text-gray-700">Require Quiz Completion</span>
+                    </label>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Passing Score (%)</label>
+                    <input type="number" name="quiz_passing_score" min="0" max="100"
+                           value="{% if tutorial %}{{ tutorial.quiz_passing_score }}{% else %}70{% endif %}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+            </div>
+
+            <!-- Hidden field for unlimited attempts -->
+            <input type="hidden" name="max_quiz_attempts" value="999999">
+
+            <div class="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <div class="flex items-center">
+                    <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                    <span class="text-sm text-blue-800">Quiz attempts are unlimited - users can retake the quiz as many times as needed.</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quiz Questions -->
+        <div class="bg-white rounded-lg shadow-sm border p-6" id="quiz_section">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-semibold text-gray-900">Quiz Questions</h2>
+                <button type="button" onclick="addQuestion()"
+                        class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors">
+                    <i class="fas fa-plus mr-2"></i>Add Question
+                </button>
+            </div>
+
+            <div id="questions_container">
+                <!-- Questions will be populated by JavaScript -->
+            </div>
+
+            <input type="hidden" name="questions_json" id="questions_json">
+        </div>
+
+        <!-- Submit Buttons -->
+        <div class="flex items-center justify-end space-x-4">
+            <a href="{% url 'custom_admin:tutorials_list' %}"
+               class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition-colors">
+                Cancel
+            </a>
+            <button type="submit"
+                    class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors">
+                <i class="fas fa-save mr-2"></i>
+                {% if tutorial %}Update Tutorial{% else %}Create Tutorial{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+// Initialize questions from existing data
+let questions = {% if quiz_questions_json %}{{ quiz_questions_json|safe }}{% else %}[]{% endif %};
+
+// Toggle video source sections
+function toggleVideoSource() {
+    const urlSection = document.getElementById('url_section');
+    const uploadSection = document.getElementById('upload_section');
+    const videoSourceRadios = document.querySelectorAll('input[name="video_source"]');
+
+    let selectedSource = 'url';
+    videoSourceRadios.forEach(radio => {
+        if (radio.checked) {
+            selectedSource = radio.value;
+        }
+    });
+
+    if (selectedSource === 'url') {
+        urlSection.style.display = 'block';
+        uploadSection.style.display = 'none';
+        // Clear file input
+        const fileInput = document.getElementById('video_file');
+        if (fileInput) fileInput.value = '';
+    } else {
+        urlSection.style.display = 'none';
+        uploadSection.style.display = 'block';
+        // Clear URL input
+        const urlInput = document.getElementById('video_url');
+        if (urlInput) urlInput.value = '';
+        // Clear preview
+        document.getElementById('video_preview').innerHTML = '<p class="text-gray-500">Select a video file to preview</p>';
+    }
+}
+
+// Handle file upload with validation
+function handleFileUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const maxSize = 500 * 1024 * 1024; // 500MB
+    const allowedTypes = ['video/mp4', 'video/webm', 'video/avi', 'video/quicktime', 'video/x-msvideo'];
+
+    // Validate file size
+    if (file.size > maxSize) {
+        alert('File size exceeds 500MB limit. Please choose a smaller file.');
+        input.value = '';
+        return;
+    }
+
+    // Validate file type
+    if (!allowedTypes.includes(file.type)) {
+        alert('Invalid file type. Please upload MP4, WebM, AVI, MOV, or MKV files.');
+        input.value = '';
+        return;
+    }
+
+    // Show file info
+    const preview = document.getElementById('video_preview');
+    const fileName = file.name;
+    const fileSize = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+
+    // Create video preview
+    const videoUrl = URL.createObjectURL(file);
+    preview.innerHTML = `
+        <div class="space-y-3">
+            <div class="bg-blue-50 p-4 rounded-lg">
+                <div class="flex items-center space-x-2 mb-2">
+                    <i class="fas fa-file-video text-blue-600"></i>
+                    <span class="font-medium text-blue-800">${fileName}</span>
+                    <span class="text-sm text-blue-600">(${fileSize})</span>
+                </div>
+                <div class="text-sm text-blue-700">File ready for upload</div>
+            </div>
+            <video controls class="w-full rounded" style="max-height: 300px;">
+                <source src="${videoUrl}" type="${file.type}">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+    `;
+
+    // Auto-detect duration if possible
+    const video = preview.querySelector('video');
+    if (video) {
+        video.addEventListener('loadedmetadata', function() {
+            const duration = Math.round(video.duration);
+            const durationInput = document.querySelector('input[name="video_duration"]');
+            const durationDisplay = document.getElementById('duration_display');
+
+            if (durationInput && duration > 0) {
+                durationInput.value = duration;
+
+                // Update display with proper formatting
+                const minutes = Math.floor(duration / 60);
+                const seconds = duration % 60;
+                if (durationDisplay) {
+                    durationDisplay.textContent = `(${minutes}m ${seconds}s)`;
+                }
+            }
+        });
+    }
+}
+
+// Video preview function for URLs
+function previewVideo() {
+    const videoUrl = document.getElementById('video_url').value;
+    const preview = document.getElementById('video_preview');
+
+    if (!videoUrl) {
+        preview.innerHTML = '<p class="text-gray-500">Video preview will appear here</p>';
+        return;
+    }
+
+    let embedUrl = '';
+
+    // YouTube
+    if (videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be')) {
+        const videoId = extractYouTubeId(videoUrl);
+        if (videoId) {
+            embedUrl = `https://www.youtube.com/embed/${videoId}`;
+        }
+    }
+    // Vimeo
+    else if (videoUrl.includes('vimeo.com')) {
+        const videoId = videoUrl.split('/').pop().split('?')[0];
+        embedUrl = `https://player.vimeo.com/video/${videoId}`;
+    }
+    // Direct video URL
+    else if (videoUrl.match(/\.(mp4|webm|ogg)(\?.*)?$/)) {
+        preview.innerHTML = `<video controls class="w-full h-full rounded">
+            <source src="${videoUrl}" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>`;
+        return;
+    }
+
+    if (embedUrl) {
+        preview.innerHTML = `<iframe src="${embedUrl}" class="w-full h-full rounded"
+                            frameborder="0" allowfullscreen></iframe>`;
+    } else {
+        preview.innerHTML = '<p class="text-red-500">Invalid video URL format</p>';
+    }
+}
+
+function extractYouTubeId(url) {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+}
+
+// Quiz functions
+function toggleQuizSection() {
+    const quizSection = document.getElementById('quiz_section');
+    const quizRequired = document.getElementById('quiz_required').checked;
+    quizSection.style.display = quizRequired ? 'block' : 'none';
+}
+
+function addQuestion() {
+    const question = {
+        question: '',
+        type: 'multiple_choice',
+        answers: [
+            { text: '', correct: true },
+            { text: '', correct: false }
+        ]
+    };
+    questions.push(question);
+    renderQuestions();
+}
+
+function removeQuestion(index) {
+    questions.splice(index, 1);
+    renderQuestions();
+}
+
+function addAnswer(questionIndex) {
+    questions[questionIndex].answers.push({ text: '', correct: false });
+    renderQuestions();
+}
+
+function removeAnswer(questionIndex, answerIndex) {
+    if (questions[questionIndex].answers.length > 2) {
+        questions[questionIndex].answers.splice(answerIndex, 1);
+        renderQuestions();
+    }
+}
+
+function updateQuestionData() {
+    document.getElementById('questions_json').value = JSON.stringify(questions);
+}
+
+function renderQuestions() {
+    const container = document.getElementById('questions_container');
+    container.innerHTML = '';
+
+    questions.forEach((question, qIndex) => {
+        const questionDiv = document.createElement('div');
+        questionDiv.className = 'quiz-question';
+        questionDiv.innerHTML = `
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="font-medium text-gray-900">Question ${qIndex + 1}</h3>
+                <button type="button" onclick="removeQuestion(${qIndex})"
+                        class="text-red-500 hover:text-red-700">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+
+            <div class="mb-3">
+                <input type="text" placeholder="Enter question"
+                       value="${question.question}"
+                       onchange="questions[${qIndex}].question = this.value; updateQuestionData()"
+                       class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <div class="mb-3">
+                <select onchange="questions[${qIndex}].type = this.value; updateQuestionData()"
+                        class="px-3 py-1 border border-gray-300 rounded">
+                    <option value="multiple_choice" ${question.type === 'multiple_choice' ? 'selected' : ''}>Multiple Choice</option>
+                    <option value="true_false" ${question.type === 'true_false' ? 'selected' : ''}>True/False</option>
+                </select>
+            </div>
+
+            <div class="space-y-2">
+                ${question.answers.map((answer, aIndex) => `
+                    <div class="quiz-answer ${answer.correct ? 'correct-answer' : ''}">
+                        <div class="flex items-center space-x-2">
+                            <input type="radio" name="correct_${qIndex}"
+                                   ${answer.correct ? 'checked' : ''}
+                                   onchange="questions[${qIndex}].answers.forEach((a, i) => a.correct = i === ${aIndex}); renderQuestions(); updateQuestionData()">
+                            <input type="text" placeholder="Answer option"
+                                   value="${answer.text}"
+                                   onchange="questions[${qIndex}].answers[${aIndex}].text = this.value; updateQuestionData()"
+                                   class="flex-1 px-2 py-1 border border-gray-300 rounded">
+                            ${question.answers.length > 2 ? `
+                                <button type="button" onclick="removeAnswer(${qIndex}, ${aIndex})"
+                                        class="text-red-500 hover:text-red-700">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `).join('')}
+
+                <button type="button" onclick="addAnswer(${qIndex})"
+                        class="text-blue-500 hover:text-blue-700 text-sm">
+                    <i class="fas fa-plus mr-1"></i>Add Answer
+                </button>
+            </div>
+        `;
+        container.appendChild(questionDiv);
+    });
+
+    updateQuestionData();
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    toggleQuizSection();
+    renderQuestions();
+    previewVideo();
+    toggleVideoSource(); // Initialize video source sections
+});
+</script>
+{% endblock %}

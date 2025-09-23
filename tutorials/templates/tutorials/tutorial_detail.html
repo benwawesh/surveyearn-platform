@@ -1,0 +1,927 @@
+{% extends 'accounts/base.html' %}
+{% load tutorials_extras %}
+
+{% block title %}{{ tutorial.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.progress-circle {
+    transform: rotate(-90deg);
+}
+
+.video-progress-bar {
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+}
+
+/* Video Container Styles */
+.video-wrapper {
+    position: relative;
+    width: 100%;
+    padding-bottom: 56.25%; /* 16:9 aspect ratio */
+    height: 0;
+    background: #000;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.video-wrapper video,
+.video-wrapper iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+    border-radius: 12px;
+}
+
+.video-wrapper video {
+    object-fit: contain;
+}
+
+/* Enhanced Controls */
+.enhanced-controls {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 50%, transparent 100%);
+    padding: 20px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 10;
+}
+
+.video-wrapper:hover .enhanced-controls {
+    opacity: 1;
+}
+
+.enhanced-controls.show {
+    opacity: 1;
+}
+
+/* Progress bar */
+.video-progress {
+    width: 100%;
+    height: 4px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 2px;
+    cursor: pointer;
+    margin-bottom: 15px;
+}
+
+.video-progress-fill {
+    height: 100%;
+    background: #3b82f6;
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.1s ease;
+}
+
+/* Control buttons */
+.control-button {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 16px;
+    padding: 8px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.control-button:hover {
+    background: rgba(255,255,255,0.2);
+}
+
+.control-button.large {
+    font-size: 20px;
+    padding: 10px;
+}
+
+/* Speed menu */
+.speed-menu {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    background: rgba(0,0,0,0.9);
+    border-radius: 6px;
+    padding: 8px 0;
+    min-width: 80px;
+    margin-bottom: 10px;
+}
+
+.speed-option {
+    display: block;
+    width: 100%;
+    padding: 8px 16px;
+    background: none;
+    border: none;
+    color: white;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.speed-option:hover,
+.speed-option.active {
+    background: rgba(255,255,255,0.2);
+}
+
+/* Volume slider */
+.volume-slider {
+    width: 60px;
+    height: 4px;
+    background: rgba(255,255,255,0.3);
+    outline: none;
+    border-radius: 2px;
+    -webkit-appearance: none;
+}
+
+.volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    background: #3b82f6;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.volume-slider::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    background: #3b82f6;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+}
+
+/* Time display */
+.time-display {
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Resume button */
+.resume-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(59, 130, 246, 0.9);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 20;
+}
+
+.resume-btn:hover {
+    background: rgba(59, 130, 246, 1);
+    transform: translate(-50%, -50%) scale(1.05);
+}
+
+/* Hidden class */
+.hidden {
+    display: none !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .enhanced-controls {
+        padding: 15px;
+    }
+
+    .control-button {
+        font-size: 14px;
+        padding: 6px;
+    }
+
+    .time-display {
+        font-size: 12px;
+    }
+
+    .volume-slider {
+        width: 40px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Breadcrumb -->
+    <nav class="flex mb-6 text-sm">
+        <a href="{% url 'tutorials:tutorial_dashboard' %}" class="text-blue-600 hover:text-blue-800">Tutorials</a>
+        <span class="mx-2 text-gray-500">/</span>
+        <span class="text-gray-700">{{ tutorial.title }}</span>
+    </nav>
+
+    <!-- Tutorial Header -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+        <div class="flex items-start justify-between">
+            <div class="flex-1">
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">{{ tutorial.title }}</h1>
+                <p class="text-gray-600 mb-4">{{ tutorial.description }}</p>
+
+                <div class="flex items-center space-x-6 text-sm text-gray-500">
+                    {% if tutorial.category %}
+                    <div class="flex items-center">
+                        <i class="fas fa-folder-open mr-1"></i>
+                        <span>{{ tutorial.category.name }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="flex items-center">
+                        <i class="fas fa-question-circle mr-1"></i>
+                        <span>{{ quiz_questions.count }} questions</span>
+                    </div>
+                    {% if tutorial.completion_reward > 0 %}
+                    <div class="flex items-center">
+                        <i class="fas fa-coins mr-1 text-yellow-500"></i>
+                        <span class="font-medium">KES {{ tutorial.completion_reward }} reward</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Progress Circle -->
+            <div class="flex-shrink-0 ml-6">
+                <div class="relative w-24 h-24">
+                    <svg class="w-24 h-24 progress-circle">
+                        <circle cx="48" cy="48" r="40" stroke="#e5e7eb" stroke-width="8" fill="none"/>
+                        <circle cx="48" cy="48" r="40" stroke="#3b82f6" stroke-width="8" fill="none"
+                                stroke-dasharray="{{ progress.video_watch_percentage|mul:2.51 }} 251.2"
+                                stroke-linecap="round"/>
+                    </svg>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <span class="text-lg font-bold text-gray-800">{{ progress.video_watch_percentage|floatformat:0 }}%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Video Section -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-semibold flex items-center">
+                <i class="fas fa-play-circle mr-2 text-blue-500"></i>
+                Video Tutorial
+            </h2>
+            <div class="text-sm text-gray-500">
+                Watch 90%+ to unlock quiz
+            </div>
+        </div>
+
+        <!-- Responsive Video Player -->
+        <div class="video-wrapper mb-6" id="videoWrapper">
+            {% if video_embed_url %}
+                <!-- External Video (YouTube/Vimeo) -->
+                <iframe id="tutorialVideo"
+                        src="{{ video_embed_url }}"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowfullscreen>
+                </iframe>
+
+            {% elif tutorial.video_source == 'upload' and tutorial.video_file %}
+                <!-- Uploaded Video with Enhanced Controls -->
+                <video id="tutorialVideo"
+                       controls
+                       preload="metadata"
+                       poster="">
+                    <source src="{{ tutorial.video_file.url }}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+
+                <!-- Resume Button -->
+                <button id="resumeBtn" class="resume-btn hidden">
+                    <i class="fas fa-play mr-2"></i>
+                    Resume from <span id="resumeTime">0:00</span>
+                </button>
+
+                <!-- Enhanced Controls -->
+                <div class="enhanced-controls" id="enhancedControls">
+                    <!-- Progress Bar -->
+                    <div class="video-progress" id="progressContainer">
+                        <div class="video-progress-fill" id="progressFill"></div>
+                    </div>
+
+                    <!-- Controls Row -->
+                    <div class="flex items-center justify-between">
+                        <!-- Left Controls -->
+                        <div class="flex items-center space-x-2">
+                            <!-- Play/Pause -->
+                            <button class="control-button large" id="playPauseBtn">
+                                <i class="fas fa-play" id="playIcon"></i>
+                                <i class="fas fa-pause hidden" id="pauseIcon"></i>
+                            </button>
+
+                            <!-- Skip buttons -->
+                            <button class="control-button" id="skipBackBtn" title="Skip 10s back">
+                                <i class="fas fa-backward"></i>
+                            </button>
+                            <button class="control-button" id="skipForwardBtn" title="Skip 10s forward">
+                                <i class="fas fa-forward"></i>
+                            </button>
+
+                            <!-- Volume -->
+                            <div class="flex items-center space-x-2 ml-4">
+                                <button class="control-button" id="muteBtn">
+                                    <i class="fas fa-volume-up" id="volumeIcon"></i>
+                                </button>
+                                <input type="range" class="volume-slider" id="volumeSlider"
+                                       min="0" max="100" value="100">
+                            </div>
+
+                            <!-- Time Display -->
+                            <div class="time-display ml-4">
+                                <span id="currentTime">0:00</span> / <span id="duration">0:00</span>
+                            </div>
+                        </div>
+
+                        <!-- Right Controls -->
+                        <div class="flex items-center space-x-2">
+                            <!-- Speed Control -->
+                            <div class="relative" id="speedContainer">
+                                <button class="control-button" id="speedBtn">
+                                    <span id="speedText">1x</span>
+                                </button>
+                                <div class="speed-menu hidden" id="speedMenu">
+                                    <button class="speed-option" data-speed="0.5">0.5x</button>
+                                    <button class="speed-option" data-speed="0.75">0.75x</button>
+                                    <button class="speed-option active" data-speed="1">1x</button>
+                                    <button class="speed-option" data-speed="1.25">1.25x</button>
+                                    <button class="speed-option" data-speed="1.5">1.5x</button>
+                                    <button class="speed-option" data-speed="2">2x</button>
+                                </div>
+                            </div>
+
+                            <!-- Fullscreen -->
+                            <button class="control-button" id="fullscreenBtn">
+                                <i class="fas fa-expand"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            {% else %}
+                <!-- No Video Available -->
+                <div class="flex items-center justify-center h-64 bg-gray-100 rounded-lg">
+                    <div class="text-center">
+                        <i class="fas fa-video text-4xl text-gray-400 mb-2"></i>
+                        <p class="text-gray-600">Video will be available soon</p>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Video Progress Bar -->
+        <div class="flex items-center justify-between">
+            <div class="flex-1 mr-4">
+                <div class="flex justify-between text-sm text-gray-600 mb-1">
+                    <span>Video Progress</span>
+                    <span id="videoProgressText">{{ progress.video_watch_percentage|floatformat:1 }}%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div id="videoProgressBar" class="video-progress-bar h-2 rounded-full"
+                         style="width: {{ progress.video_watch_percentage }}%"></div>
+                </div>
+            </div>
+            {% if progress.video_completed_at %}
+                <div class="flex items-center text-green-600">
+                    <i class="fas fa-check-circle mr-1"></i>
+                    <span class="text-sm">Completed</span>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Quiz Section -->
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-semibold flex items-center">
+                <i class="fas fa-question-circle mr-2 text-purple-500"></i>
+                Quiz Challenge
+            </h2>
+            <div class="text-right">
+                {% if progress.quiz_attempts > 0 %}
+                    <div class="text-sm text-gray-500">
+                        Attempts: {{ progress.quiz_attempts }}/{{ tutorial.max_quiz_attempts }}
+                    </div>
+                    <div class="text-sm font-medium {% if progress.is_passed %}text-green-600{% else %}text-red-600{% endif %}">
+                        Best Score: {{ progress.score_percentage|floatformat:1 }}%
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if progress.is_passed %}
+            <div class="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
+                <i class="fas fa-trophy text-4xl text-green-500 mb-4"></i>
+                <h3 class="text-xl font-bold text-green-800 mb-2">Congratulations! Quiz Passed</h3>
+                <p class="text-green-700 mb-4">You scored {{ progress.score_percentage|floatformat:1 }}% on this quiz.</p>
+            </div>
+
+        {% elif not can_take_quiz %}
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
+                <i class="fas fa-lock text-4xl text-gray-400 mb-4"></i>
+                <h3 class="text-xl font-bold text-gray-700 mb-2">Quiz Locked</h3>
+                {% if progress.video_watch_percentage < 90 %}
+                    <p class="text-gray-600 mb-4">Watch at least 90% of the video to unlock the quiz.</p>
+                {% elif progress.quiz_attempts >= tutorial.max_quiz_attempts %}
+                    <p class="text-gray-600 mb-4">You have used all {{ tutorial.max_quiz_attempts }} quiz attempts.</p>
+                {% endif %}
+            </div>
+
+        {% else %}
+            <div class="space-y-6">
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h3 class="font-semibold text-blue-800 mb-2">Quiz Instructions</h3>
+                    <ul class="text-blue-700 text-sm space-y-1">
+                        <li>• Answer all questions to the best of your ability</li>
+                        <li>• You need {{ tutorial.quiz_passing_score }}% or higher to pass</li>
+                        <li>• You have {{ tutorial.max_quiz_attempts|sub:progress.quiz_attempts }} attempts remaining</li>
+                        <li>• Take your time - there's no time limit</li>
+                    </ul>
+                </div>
+
+                <div class="text-center">
+                    <a href="{% url 'tutorials:start_quiz' tutorial.pk %}"
+                       id="startQuizBtn"
+                       class="inline-flex items-center px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors">
+                        <i class="fas fa-play mr-2"></i>
+                        Start Quiz
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Keyboard Shortcuts Info -->
+    <div class="mt-6 text-center">
+        <button onclick="showKeyboardHelp()" class="text-sm text-blue-600 hover:text-blue-800">
+            <i class="fas fa-keyboard mr-1"></i>
+            Press ? for keyboard shortcuts
+        </button>
+    </div>
+
+    <!-- Keyboard Help Modal -->
+    <div id="keyboardHelp" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 max-w-md mx-4">
+            <h3 class="text-lg font-bold mb-4">Keyboard Shortcuts</h3>
+            <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                    <span class="font-medium">Space</span>
+                    <span>Play/Pause</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="font-medium">← →</span>
+                    <span>Skip 10s</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="font-medium">↑ ↓</span>
+                    <span>Volume</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="font-medium">F</span>
+                    <span>Fullscreen</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="font-medium">M</span>
+                    <span>Mute</span>
+                </div>
+            </div>
+            <button onclick="hideKeyboardHelp()" class="mt-4 w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+class VideoPlayer {
+    constructor() {
+        this.video = document.getElementById('tutorialVideo');
+        this.tutorialId = '{{ tutorial.id }}';
+        this.lastProgress = {{ progress.video_watch_percentage|default:0 }};
+
+        if (this.video && this.video.tagName === 'VIDEO') {
+            this.initEnhancedPlayer();
+        } else if (this.video) {
+            this.initBasicTracking();
+        }
+    }
+
+    initEnhancedPlayer() {
+        this.getElements();
+        this.setupEventListeners();
+        this.setupKeyboardShortcuts();
+        this.loadPreferences();
+    }
+
+    getElements() {
+        this.playPauseBtn = document.getElementById('playPauseBtn');
+        this.playIcon = document.getElementById('playIcon');
+        this.pauseIcon = document.getElementById('pauseIcon');
+        this.progressContainer = document.getElementById('progressContainer');
+        this.progressFill = document.getElementById('progressFill');
+        this.currentTimeEl = document.getElementById('currentTime');
+        this.durationEl = document.getElementById('duration');
+        this.volumeSlider = document.getElementById('volumeSlider');
+        this.volumeIcon = document.getElementById('volumeIcon');
+        this.speedBtn = document.getElementById('speedBtn');
+        this.speedMenu = document.getElementById('speedMenu');
+        this.speedText = document.getElementById('speedText');
+        this.enhancedControls = document.getElementById('enhancedControls');
+        this.resumeBtn = document.getElementById('resumeBtn');
+        this.resumeTime = document.getElementById('resumeTime');
+    }
+
+    setupEventListeners() {
+        // Video events
+        this.video.addEventListener('loadedmetadata', () => this.onLoadedMetadata());
+        this.video.addEventListener('timeupdate', () => this.onTimeUpdate());
+        this.video.addEventListener('play', () => this.onPlay());
+        this.video.addEventListener('pause', () => this.onPause());
+        this.video.addEventListener('ended', () => this.onEnded());
+
+        // Control events
+        this.playPauseBtn?.addEventListener('click', () => this.togglePlayPause());
+        document.getElementById('skipBackBtn')?.addEventListener('click', () => this.skip(-10));
+        document.getElementById('skipForwardBtn')?.addEventListener('click', () => this.skip(10));
+        document.getElementById('muteBtn')?.addEventListener('click', () => this.toggleMute());
+        document.getElementById('fullscreenBtn')?.addEventListener('click', () => this.toggleFullscreen());
+
+        // Progress bar
+        this.progressContainer?.addEventListener('click', (e) => this.seek(e));
+
+        // Volume
+        this.volumeSlider?.addEventListener('input', (e) => this.setVolume(e.target.value));
+
+        // Speed controls
+        this.speedBtn?.addEventListener('click', () => this.toggleSpeedMenu());
+        document.querySelectorAll('.speed-option').forEach(btn => {
+            btn.addEventListener('click', (e) => this.setSpeed(parseFloat(e.target.dataset.speed)));
+        });
+
+        // Resume
+        this.resumeBtn?.addEventListener('click', () => this.resume());
+
+        // Hide menus on outside click
+        document.addEventListener('click', (e) => {
+            if (!document.getElementById('speedContainer')?.contains(e.target)) {
+                this.hideSpeedMenu();
+            }
+        });
+
+        // Controls visibility
+        const wrapper = document.getElementById('videoWrapper');
+        wrapper?.addEventListener('mouseenter', () => this.showControls());
+        wrapper?.addEventListener('mouseleave', () => this.hideControls());
+    }
+
+    setupKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            switch(e.code) {
+                case 'Space':
+                    e.preventDefault();
+                    this.togglePlayPause();
+                    break;
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    this.skip(-10);
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    this.skip(10);
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    this.adjustVolume(10);
+                    break;
+                case 'ArrowDown':
+                    e.preventDefault();
+                    this.adjustVolume(-10);
+                    break;
+                case 'KeyF':
+                    e.preventDefault();
+                    this.toggleFullscreen();
+                    break;
+                case 'KeyM':
+                    e.preventDefault();
+                    this.toggleMute();
+                    break;
+                case 'Slash':
+                    if (e.shiftKey) {
+                        e.preventDefault();
+                        showKeyboardHelp();
+                    }
+                    break;
+            }
+        });
+    }
+
+    onLoadedMetadata() {
+        this.updateDuration();
+
+        // Load saved position
+        const savedPosition = localStorage.getItem(`tutorial_${this.tutorialId}_position`);
+        if (savedPosition && parseFloat(savedPosition) > 10) {
+            this.showResumeOption(parseFloat(savedPosition));
+        }
+
+        // Load saved speed
+        const savedSpeed = localStorage.getItem(`tutorial_${this.tutorialId}_speed`);
+        if (savedSpeed) {
+            this.setSpeed(parseFloat(savedSpeed));
+        }
+    }
+
+    onTimeUpdate() {
+        this.updateProgress();
+        this.savePosition();
+        this.trackProgress();
+    }
+
+    onPlay() {
+        this.playIcon?.classList.add('hidden');
+        this.pauseIcon?.classList.remove('hidden');
+        this.resumeBtn?.classList.add('hidden');
+    }
+
+    onPause() {
+        this.playIcon?.classList.remove('hidden');
+        this.pauseIcon?.classList.add('hidden');
+    }
+
+    onEnded() {
+        this.updateServerProgress(100);
+    }
+
+    togglePlayPause() {
+        if (this.video.paused) {
+            this.video.play();
+        } else {
+            this.video.pause();
+        }
+    }
+
+    skip(seconds) {
+        this.video.currentTime = Math.max(0, Math.min(this.video.duration, this.video.currentTime + seconds));
+        this.showControls();
+    }
+
+    seek(e) {
+        const rect = this.progressContainer.getBoundingClientRect();
+        const percent = (e.clientX - rect.left) / rect.width;
+        this.video.currentTime = percent * this.video.duration;
+    }
+
+    setVolume(value) {
+        this.video.volume = value / 100;
+        this.updateVolumeIcon(value);
+        localStorage.setItem(`tutorial_${this.tutorialId}_volume`, value);
+    }
+
+    toggleMute() {
+        if (this.video.muted) {
+            this.video.muted = false;
+            this.volumeSlider.value = this.video.volume * 100;
+        } else {
+            this.video.muted = true;
+            this.volumeSlider.value = 0;
+        }
+        this.updateVolumeIcon(this.volumeSlider.value);
+    }
+
+    adjustVolume(change) {
+        const newVolume = Math.max(0, Math.min(100, parseInt(this.volumeSlider.value) + change));
+        this.volumeSlider.value = newVolume;
+        this.setVolume(newVolume);
+    }
+
+    updateVolumeIcon(volume) {
+        if (volume == 0 || this.video.muted) {
+            this.volumeIcon.className = 'fas fa-volume-mute';
+        } else if (volume < 50) {
+            this.volumeIcon.className = 'fas fa-volume-down';
+        } else {
+            this.volumeIcon.className = 'fas fa-volume-up';
+        }
+    }
+
+    setSpeed(speed) {
+        this.video.playbackRate = speed;
+        this.speedText.textContent = `${speed}x`;
+
+        // Update active state
+        document.querySelectorAll('.speed-option').forEach(opt => opt.classList.remove('active'));
+        document.querySelector(`[data-speed="${speed}"]`)?.classList.add('active');
+
+        localStorage.setItem(`tutorial_${this.tutorialId}_speed`, speed);
+        this.hideSpeedMenu();
+    }
+
+    toggleSpeedMenu() {
+        this.speedMenu?.classList.toggle('hidden');
+    }
+
+    hideSpeedMenu() {
+        this.speedMenu?.classList.add('hidden');
+    }
+
+    toggleFullscreen() {
+        const wrapper = document.getElementById('videoWrapper');
+        if (!document.fullscreenElement) {
+            wrapper.requestFullscreen?.();
+        } else {
+            document.exitFullscreen?.();
+        }
+    }
+
+    showResumeOption(position) {
+        this.resumeTime.textContent = this.formatTime(position);
+        this.resumeBtn?.classList.remove('hidden');
+    }
+
+    resume() {
+        const savedPosition = localStorage.getItem(`tutorial_${this.tutorialId}_position`);
+        if (savedPosition) {
+            this.video.currentTime = parseFloat(savedPosition);
+        }
+        this.resumeBtn?.classList.add('hidden');
+    }
+
+    updateProgress() {
+        if (this.video.duration) {
+            const percent = (this.video.currentTime / this.video.duration) * 100;
+            this.progressFill.style.width = `${percent}%`;
+            this.currentTimeEl.textContent = this.formatTime(this.video.currentTime);
+        }
+    }
+
+    updateDuration() {
+        this.durationEl.textContent = this.formatTime(this.video.duration);
+    }
+
+    formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    savePosition() {
+        localStorage.setItem(`tutorial_${this.tutorialId}_position`, this.video.currentTime);
+    }
+
+    trackProgress() {
+        if (this.video.duration > 0) {
+            const percentage = (this.video.currentTime / this.video.duration) * 100;
+            if (percentage >= this.lastProgress + 5 || percentage >= 90) {
+                this.updateServerProgress(percentage);
+            }
+        }
+    }
+
+    updateServerProgress(percentage) {
+        if (percentage <= this.lastProgress) return;
+
+        this.lastProgress = percentage;
+
+        fetch('{% url "tutorials:update_progress" tutorial.pk %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': this.getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                watch_percentage: percentage
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                this.updateProgressUI(percentage);
+                if (percentage >= 90) {
+                    this.showQuizUnlocked();
+                }
+            }
+        })
+        .catch(error => console.error('Progress update failed:', error));
+    }
+
+    updateProgressUI(percentage) {
+        const progressBar = document.getElementById('videoProgressBar');
+        const progressText = document.getElementById('videoProgressText');
+
+        if (progressBar) progressBar.style.width = `${percentage}%`;
+        if (progressText) progressText.textContent = `${percentage.toFixed(1)}%`;
+    }
+
+    showQuizUnlocked() {
+        const quizBtn = document.getElementById('startQuizBtn');
+        if (quizBtn) {
+            quizBtn.classList.add('animate-pulse');
+        }
+
+        // Show notification
+        this.showNotification('Quiz unlocked! You can now take the quiz.', 'success');
+    }
+
+    showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg text-white z-50 ${
+            type === 'success' ? 'bg-green-500' : 'bg-blue-500'
+        }`;
+        notification.innerHTML = `<i class="fas fa-check-circle mr-2"></i>${message}`;
+
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+            notification.remove();
+        }, 4000);
+    }
+
+    showControls() {
+        this.enhancedControls?.classList.add('show');
+        clearTimeout(this.hideTimeout);
+    }
+
+    hideControls() {
+        this.hideTimeout = setTimeout(() => {
+            if (this.video.paused) return;
+            this.enhancedControls?.classList.remove('show');
+        }, 2000);
+    }
+
+    loadPreferences() {
+        // Load volume
+        const savedVolume = localStorage.getItem(`tutorial_${this.tutorialId}_volume`);
+        if (savedVolume) {
+            this.volumeSlider.value = savedVolume;
+            this.setVolume(savedVolume);
+        }
+    }
+
+    getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // For external videos (iframe)
+    initBasicTracking() {
+        let simulatedProgress = this.lastProgress;
+
+        const progressInterval = setInterval(() => {
+            if (simulatedProgress < 100) {
+                simulatedProgress += 3;
+                this.updateProgressUI(simulatedProgress);
+
+                if (simulatedProgress >= this.lastProgress + 10 || simulatedProgress >= 90) {
+                    this.updateServerProgress(simulatedProgress);
+                }
+
+                if (simulatedProgress >= 100) {
+                    clearInterval(progressInterval);
+                }
+            }
+        }, 4000);
+    }
+}
+
+// Helper functions
+function showKeyboardHelp() {
+    document.getElementById('keyboardHelp').classList.remove('hidden');
+    document.getElementById('keyboardHelp').classList.add('flex');
+}
+
+function hideKeyboardHelp() {
+    document.getElementById('keyboardHelp').classList.add('hidden');
+    document.getElementById('keyboardHelp').classList.remove('flex');
+}
+
+// Initialize video player
+document.addEventListener('DOMContentLoaded', function() {
+    window.videoPlayer = new VideoPlayer();
+});
+</script>
+{% endblock %}

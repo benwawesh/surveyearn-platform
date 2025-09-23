@@ -1,0 +1,409 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}{{ user_obj.username }} - User Details - SurveyEarn Admin{% endblock %}
+
+{% block page_title %}User Details: {{ user_obj.username }}{% endblock %}
+{% block page_description %}Manage user account and view activity{% endblock %}
+
+{% block page_actions %}
+<div class="flex space-x-3">
+    <a href="{% url 'custom_admin:users' %}"
+       class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-sm">
+        <i class="fas fa-arrow-left mr-1"></i>
+        Back to Users
+    </a>
+
+    <!-- Add Delete User Button (only for non-admin users) -->
+    {% if not user_obj.is_superuser and not user_obj.is_staff %}
+    <a href="{% url 'custom_admin:delete_user' user_obj.id %}"
+       class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm"
+       onclick="return confirm('Are you sure you want to permanently delete this user? This action cannot be undone and will remove all user data including transactions and survey responses.')">
+        <i class="fas fa-trash mr-1"></i>
+        Delete User
+    </a>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block content %}
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- User Information -->
+    <div class="lg:col-span-2 space-y-6">
+        <!-- Basic Info Card -->
+        <div class="bg-white shadow rounded-lg p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Basic Information</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-500">Username</label>
+                    <p class="mt-1 text-sm text-gray-900">{{ user_obj.username }}</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-500">Email</label>
+                    <p class="mt-1 text-sm text-gray-900">{{ user_obj.email }}</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-500">First Name</label>
+                    <p class="mt-1 text-sm text-gray-900">{{ user_obj.first_name|default:"Not provided" }}</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-500">Last Name</label>
+                    <p class="mt-1 text-sm text-gray-900">{{ user_obj.last_name|default:"Not provided" }}</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-500">Phone Number</label>
+                    <p class="mt-1 text-sm text-gray-900">{{ user_obj.phone_number|default:"Not provided" }}</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-500">Date of Birth</label>
+                    <p class="mt-1 text-sm text-gray-900">{{ user_obj.date_of_birth|default:"Not provided" }}</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-500">Location</label>
+                    <p class="mt-1 text-sm text-gray-900">{{ user_obj.location|default:"Not provided" }}</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-500">Date Joined</label>
+                    <p class="mt-1 text-sm text-gray-900">{{ user_obj.date_joined|date:"F j, Y g:i A" }}</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-500">Last Login</label>
+                    <p class="mt-1 text-sm text-gray-900">
+                        {% if user_obj.last_login %}
+                            {{ user_obj.last_login|date:"F j, Y g:i A" }}
+                        {% else %}
+                            Never logged in
+                        {% endif %}
+                    </p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-500">Account Status</label>
+                    <p class="mt-1">
+                        {% if user_obj.is_active %}
+                            <span class="inline-flex px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">Active</span>
+                        {% else %}
+                            <span class="inline-flex px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">Inactive</span>
+                        {% endif %}
+                        {% if user_obj.is_staff %}
+                            <span class="inline-flex px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full ml-2">Staff</span>
+                        {% endif %}
+                        {% if user_obj.is_superuser %}
+                            <span class="inline-flex px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded-full ml-2">Superuser</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-500">Email Verified</label>
+                    <p class="mt-1">
+                        {% if user_obj.email_verified %}
+                            <span class="inline-flex px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">Verified</span>
+                        {% else %}
+                            <span class="inline-flex px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">Unverified</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-500">Profile Completion</label>
+                    <p class="mt-1 text-sm text-gray-900">{{ user_obj.profile_completion_percentage }}%</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Survey Responses -->
+        <div class="bg-white shadow rounded-lg p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Recent Survey Responses</h3>
+            {% if responses %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Survey</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payout</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Completed</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            {% for response in responses %}
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-medium text-gray-900">{{ response.survey.title }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="text-sm font-medium text-green-600">+KSh {{ response.payout_amount|floatformat:2 }}</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {% if response.completed_at %}
+                                        {{ response.completed_at|date:"M j, Y g:i A" }}
+                                    {% else %}
+                                        In Progress
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-gray-500 text-sm">No survey responses yet.</p>
+            {% endif %}
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="bg-white shadow rounded-lg p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Recent Transactions</h3>
+            {% if recent_transactions %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            {% for transaction in recent_transactions %}
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="text-xs px-2 py-1 rounded
+                                        {% if transaction.transaction_type == 'survey_payment' %}bg-green-100 text-green-800
+                                        {% elif transaction.transaction_type == 'withdrawal' %}bg-blue-100 text-blue-800
+                                        {% elif transaction.transaction_type == 'bonus' %}bg-purple-100 text-purple-800
+                                        {% elif transaction.transaction_type == 'adjustment' %}bg-gray-100 text-gray-800
+                                        {% else %}bg-orange-100 text-orange-800{% endif %}">
+                                        {{ transaction.get_transaction_type_display }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    {% if transaction.transaction_type in 'survey_payment,bonus,refund' %}
+                                        <span class="text-sm font-medium text-green-600">+KSh {{ transaction.amount|floatformat:2 }}</span>
+                                    {% else %}
+                                        <span class="text-sm font-medium text-red-600">-KSh {{ transaction.amount|floatformat:2 }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="text-xs px-2 py-1 rounded
+                                        {% if transaction.status == 'completed' %}bg-green-100 text-green-800
+                                        {% elif transaction.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                        {% elif transaction.status == 'failed' %}bg-red-100 text-red-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ transaction.status|title }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{ transaction.created_at|date:"M j, Y g:i A" }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-gray-500 text-sm">No transactions yet.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Actions Sidebar -->
+    <div class="space-y-6">
+        <!-- Financial Summary -->
+        <div class="bg-white shadow rounded-lg p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Financial Summary</h3>
+            <div class="space-y-3">
+                <div class="flex justify-between">
+                    <span class="text-sm text-gray-500">Current Balance:</span>
+                    <span class="text-sm font-medium {% if user_obj.balance >= 10 %}text-green-600{% elif user_obj.balance > 0 %}text-orange-600{% else %}text-gray-600{% endif %}">
+                        KSh {{ user_obj.balance|floatformat:2 }}
+                    </span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-sm text-gray-500">Total Earnings:</span>
+                    <span class="text-sm font-medium text-green-600">KSh {{ user_obj.total_earnings|floatformat:2 }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-sm text-gray-500">Surveys Completed:</span>
+                    <span class="text-sm font-medium text-blue-600">{{ user_obj.total_surveys_completed }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-sm text-gray-500">Can Withdraw:</span>
+                    {% if user_obj.balance >= 10 %}
+                        <span class="text-sm font-medium text-green-600">Yes</span>
+                    {% else %}
+                        <span class="text-sm font-medium text-red-600">No</span>
+                    {% endif %}
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-sm text-gray-500">Can Take Surveys:</span>
+                    {% if user_obj.can_take_surveys %}
+                        <span class="text-sm font-medium text-green-600">Yes</span>
+                    {% else %}
+                        <span class="text-sm font-medium text-red-600">No</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Account Actions -->
+        <div class="bg-white shadow rounded-lg p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Account Actions</h3>
+            <div class="space-y-3">
+                <!-- Only show action buttons for non-admin users -->
+                {% if not user_obj.is_superuser and not user_obj.is_staff %}
+                    <!-- Toggle Active Status -->
+                    <form method="POST" class="w-full">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="toggle_active">
+                        <button type="submit"
+                                onclick="return confirmAction('Are you sure you want to {{ user_obj.is_active|yesno:"deactivate,activate" }} this user?')"
+                                class="w-full {% if user_obj.is_active %}bg-red-600 hover:bg-red-700{% else %}bg-green-600 hover:bg-green-700{% endif %} text-white px-4 py-2 rounded-md text-sm">
+                            <i class="fas {% if user_obj.is_active %}fa-user-slash{% else %}fa-user-check{% endif %} mr-1"></i>
+                            {{ user_obj.is_active|yesno:"Deactivate User,Activate User" }}
+                        </button>
+                    </form>
+
+                    <!-- Balance Adjustment -->
+                    <form method="POST" class="w-full">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="adjust_balance">
+                        <div class="mb-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Adjust Balance (KSh)</label>
+                            <input type="number" step="0.01" name="amount" placeholder="Amount (+/-)"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div class="mb-3">
+                            <input type="text" name="reason" placeholder="Reason for adjustment"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <button type="submit"
+                                onclick="return confirmAction('Are you sure you want to adjust this user\'s balance?')"
+                                class="w-full bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-md text-sm">
+                            <i class="fas fa-edit mr-1"></i>
+                            Adjust Balance
+                        </button>
+                    </form>
+
+                    <!-- Email Verification Toggle -->
+                    <form method="POST" class="w-full">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="toggle_email_verified">
+                        <button type="submit"
+                                onclick="return confirmAction('Are you sure you want to {{ user_obj.email_verified|yesno:"unverify,verify" }} this user\'s email?')"
+                                class="w-full {% if user_obj.email_verified %}bg-orange-600 hover:bg-orange-700{% else %}bg-blue-600 hover:bg-blue-700{% endif %} text-white px-4 py-2 rounded-md text-sm">
+                            <i class="fas {% if user_obj.email_verified %}fa-envelope-open{% else %}fa-envelope{% endif %} mr-1"></i>
+                            {{ user_obj.email_verified|yesno:"Unverify Email,Verify Email" }}
+                        </button>
+                    </form>
+
+                    <!-- Danger Zone - Delete User -->
+                    <div class="pt-4 border-t border-gray-200">
+                        <h4 class="text-sm font-medium text-red-600 mb-2">Danger Zone</h4>
+                        <a href="{% url 'custom_admin:delete_user' user_obj.id %}"
+                           onclick="return confirmDeletion()"
+                           class="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm block text-center">
+                            <i class="fas fa-trash mr-1"></i>
+                            Delete User Permanently
+                        </a>
+                        <p class="text-xs text-gray-500 mt-1">This action cannot be undone. All user data will be permanently deleted.</p>
+                    </div>
+                {% else %}
+                    <!-- Admin User Notice -->
+                    <div class="bg-blue-50 border border-blue-200 rounded-md p-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-shield-alt text-blue-400"></i>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-blue-800">
+                                    Protected Admin Account
+                                </h3>
+                                <div class="mt-2 text-sm text-blue-700">
+                                    <p>This is an administrative account. Most actions are restricted for security purposes.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- User Activity Summary -->
+        <div class="bg-white shadow rounded-lg p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Activity Summary</h3>
+            <div class="space-y-3">
+                <div class="flex justify-between">
+                    <span class="text-sm text-gray-500">Registration Status:</span>
+                    {% if user_obj.registration_paid %}
+                        <span class="text-sm font-medium text-green-600">Paid</span>
+                    {% else %}
+                        <span class="text-sm font-medium text-red-600">Unpaid</span>
+                    {% endif %}
+                </div>
+                {% if user_obj.mpesa_receipt_number %}
+                <div class="flex justify-between">
+                    <span class="text-sm text-gray-500">M-Pesa Receipt:</span>
+                    <span class="text-sm font-medium text-gray-900">{{ user_obj.mpesa_receipt_number }}</span>
+                </div>
+                {% endif %}
+                {% if user_obj.registration_payment_date %}
+                <div class="flex justify-between">
+                    <span class="text-sm text-gray-500">Payment Date:</span>
+                    <span class="text-sm font-medium text-gray-900">{{ user_obj.registration_payment_date|date:"M j, Y" }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Withdrawal Requests -->
+        {% if withdrawals %}
+        <div class="bg-white shadow rounded-lg p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Recent Withdrawals</h3>
+            <div class="space-y-3">
+                {% for withdrawal in withdrawals %}
+                <div class="border border-gray-200 rounded-lg p-3">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-sm font-medium text-gray-900">KSh {{ withdrawal.amount|floatformat:2 }}</p>
+                            <p class="text-xs text-gray-500">{{ withdrawal.get_payment_method_display }}</p>
+                            <p class="text-xs text-gray-400">{{ withdrawal.created_at|date:"M j, Y" }}</p>
+                        </div>
+                        <span class="text-xs px-2 py-1 rounded
+                            {% if withdrawal.status == 'pending' %}bg-orange-100 text-orange-800
+                            {% elif withdrawal.status == 'approved' %}bg-blue-100 text-blue-800
+                            {% elif withdrawal.status == 'completed' %}bg-green-100 text-green-800
+                            {% elif withdrawal.status == 'rejected' %}bg-red-100 text-red-800
+                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {{ withdrawal.status|title }}
+                        </span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="mt-4 pt-4 border-t border-gray-200">
+                <a href="{% url 'custom_admin:withdrawals' %}?search={{ user_obj.username }}"
+                   class="text-sm text-blue-600 hover:text-blue-800">
+                    View all withdrawals <i class="fas fa-arrow-right text-xs"></i>
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function confirmAction(message) {
+    return confirm(message);
+}
+
+function confirmDeletion() {
+    return confirm('⚠️ WARNING: This will permanently delete the user and ALL associated data including:\n\n' +
+                  '• User account and profile information\n' +
+                  '• All transaction history\n' +
+                  '• All survey responses\n' +
+                  '• All withdrawal requests\n' +
+                  '• Any other related data\n\n' +
+                  'This action CANNOT be undone!\n\n' +
+                  'Are you absolutely sure you want to proceed?');
+}
+</script>
+{% endblock %}
