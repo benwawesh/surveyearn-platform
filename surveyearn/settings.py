@@ -5,7 +5,7 @@ import os
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-development-key-change-in-production')
-DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
+DEBUG = True
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 INSTALLED_APPS = [
@@ -25,6 +25,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -54,14 +55,27 @@ TEMPLATES = [
 WSGI_APPLICATION = 'surveyearn.wsgi.application'
 # ASGI_APPLICATION = 'surveyearn.asgi.application'  # Temporarily disabled
 
-# Database - SQLite for development
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+# Database configuration
+# Database configuration
+import dj_database_url
 
+# Always use DATABASE_URL if it exists
+if 'DATABASE_URL' in os.environ:
+    DATABASES = {
+        'default': dj_database_url.parse(os.environ['DATABASE_URL'])
+    }
+else:
+    # Fallback configuration
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'surveyearn_db',
+            'USER': 'surveyearn_user',
+            'PASSWORD': '@Benson100',
+            'HOST': 'db',
+            'PORT': '5432',
+        }
+    }
 # Simple cache for development (no Redis required)
 CACHES = {
     'default': {
@@ -89,6 +103,13 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = []
 if (BASE_DIR / 'static').exists():
     STATICFILES_DIRS.append(BASE_DIR / 'static')
+
+# Whitenoise configuration for production static files
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Optional whitenoise settings for better performance
+WHITENOISE_USE_FINDERS = True
+WHITENOISE_AUTOREFRESH = True if DEBUG else False
 
 # Media files
 MEDIA_URL = '/media/'

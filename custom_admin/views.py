@@ -117,7 +117,7 @@ def admin_logout(request):
         del request.session['admin_verified']
     logout(request)
     messages.success(request, 'Successfully logged out.')
-    return redirect('surveys:landing_page')
+    return redirect('landing_page')
 
 
 @admin_required

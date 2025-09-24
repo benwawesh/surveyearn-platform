@@ -1,5 +1,4 @@
 version: '3.8'
-
 services:
   db:
     image: postgres:15
@@ -8,10 +7,9 @@ services:
     environment:
       - POSTGRES_DB=surveyearn_db
       - POSTGRES_USER=surveyearn_user
-      - POSTGRES_PASSWORD=@Benson100
+      - POSTGRES_PASSWORD=@Benson100  # Use the same password
     ports:
       - "5434:5432"
-
   web:
     build: .
     command: python manage.py runserver 0.0.0.0:8000
@@ -23,7 +21,6 @@ services:
       - db
     environment:
       - DEBUG=1
-      - DATABASE_URL=postgresql://surveyearn_user:secure_password_123@db:5432/surveyearn_db
-
+      - DATABASE_URL=postgresql://surveyearn_user:@Benson100@db:5432/surveyearn_db  # Fixed password
 volumes:
   postgres_data:
