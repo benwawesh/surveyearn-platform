@@ -142,9 +142,16 @@ class ReferralTrackingMiddleware(MiddlewareMixin):
                 # Store in session with 30-day expiry
                 request.session['referral_code'] = ref_code
                 request.session['referrer_username'] = referrer.username
+                request.session['referrer_id'] = str(referrer.id)
                 request.session.set_expiry(30 * 24 * 60 * 60)  # 30 days
 
-                logger.info(f"✅ Referral code {ref_code} stored for referrer: {referrer.username}")
+                logger.info(f"Referral code {ref_code} stored for referrer: {referrer.username}")
+
+                # Set cookie data to be processed in response
+                request._referral_cookie_data = {
+                    'referral_code': ref_code,
+                    'referrer_username': referrer.username
+                }
 
                 # Add success message for debugging (remove in production)
                 if settings.DEBUG:
@@ -152,28 +159,67 @@ class ReferralTrackingMiddleware(MiddlewareMixin):
                         'referral_message'] = f"You were referred by {referrer.get_full_name() or referrer.username}"
 
             except User.DoesNotExist:
-                logger.warning(f"❌ Invalid referral code attempted: {ref_code}")
+                logger.warning(f"Invalid referral code attempted: {ref_code}")
 
                 # Clean up any existing invalid referral data
-                session_keys_to_remove = ['referral_code', 'referrer_username', 'referral_message']
+                session_keys_to_remove = ['referral_code', 'referrer_username', 'referral_message', 'referrer_id']
                 for key in session_keys_to_remove:
                     if key in request.session:
                         del request.session[key]
 
             except Exception as e:
-                logger.error(f"❌ Error processing referral code {ref_code}: {str(e)}")
+                logger.error(f"Error processing referral code {ref_code}: {str(e)}")
+
+        # If no URL referral code, check for existing cookie (cross-session persistence)
+        elif not request.session.get('referral_code'):
+            cookie_ref_code = request.COOKIES.get('surveyearn_ref_code')
+            if cookie_ref_code:
+                try:
+                    referrer = User.objects.get(referral_code=cookie_ref_code)
+                    request.session['referral_code'] = cookie_ref_code
+                    request.session['referrer_username'] = referrer.username
+                    request.session['referrer_id'] = str(referrer.id)
+                    logger.info(f"Referral restored from cookie: {cookie_ref_code}")
+                except User.DoesNotExist:
+                    # Cookie has invalid code, mark for clearing
+                    request._clear_referral_cookie = True
 
         return None
 
     def process_response(self, request, response):
         """
-        Add debug information about referral tracking
+        Set referral cookies and add debug information
         """
+        # Set referral cookie if we captured new referral data
+        if hasattr(request, '_referral_cookie_data'):
+            ref_data = request._referral_cookie_data
+
+            # Set cookies with 30-day expiration
+            response.set_cookie(
+                'surveyearn_ref_code',
+                ref_data['referral_code'],
+                max_age=30 * 24 * 60 * 60,  # 30 days
+                httponly=True,  # Prevent JS access
+                samesite='Lax'
+            )
+            response.set_cookie(
+                'surveyearn_ref_user',
+                ref_data['referrer_username'],
+                max_age=30 * 24 * 60 * 60,
+                httponly=True,
+                samesite='Lax'
+            )
+
+        # Clear invalid referral cookie
+        if hasattr(request, '_clear_referral_cookie'):
+            response.delete_cookie('surveyearn_ref_code')
+            response.delete_cookie('surveyearn_ref_user')
+
         # Debug logging in development mode
         if settings.DEBUG and hasattr(request, 'session'):
             if 'referral_code' in request.session:
                 ref_code = request.session['referral_code']
                 referrer = request.session.get('referrer_username', 'Unknown')
-                logger.debug(f"🔍 Active referral session: {ref_code} (referrer: {referrer})")
+                logger.debug(f"Active referral session: {ref_code} (referrer: {referrer})")
 
         return response

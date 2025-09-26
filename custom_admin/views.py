@@ -122,8 +122,15 @@ def admin_logout(request):
 
 @admin_required
 def admin_users(request):
-    """User management with search and filtering"""
-    users = User.objects.all()
+    """Enhanced user management with accurate financial data matching the template"""
+
+    from django.db.models import Sum, Count, Q
+    from datetime import timedelta
+    from django.utils import timezone
+    from decimal import Decimal
+
+    # Start with all users and their related data
+    users = User.objects.select_related().prefetch_related('transactions')
 
     # Search functionality
     search_query = request.GET.get('search', '')
@@ -132,7 +139,8 @@ def admin_users(request):
             Q(username__icontains=search_query) |
             Q(email__icontains=search_query) |
             Q(first_name__icontains=search_query) |
-            Q(last_name__icontains=search_query)
+            Q(last_name__icontains=search_query) |
+            Q(phone_number__icontains=search_query)
         )
 
     # Filter by status
@@ -143,22 +151,127 @@ def admin_users(request):
         users = users.filter(is_active=False)
     elif status_filter == 'staff':
         users = users.filter(is_staff=True)
+    elif status_filter == 'verified':
+        # Assuming you have email_verified field
+        users = users.filter(email_verified=True)
 
-    # Order by latest joined
-    users = users.order_by('-date_joined')
+    # Balance range filter
+    balance_range = request.GET.get('balance_range', '')
+    if balance_range == '0':
+        users = users.filter(Q(balance__isnull=True) | Q(balance=0))
+    elif balance_range == '1-100':
+        users = users.filter(balance__gt=0, balance__lte=100)
+    elif balance_range == '100-500':
+        users = users.filter(balance__gt=100, balance__lte=500)
+    elif balance_range == '500+':
+        users = users.filter(balance__gt=500)
+
+    # Since the User model already has total_surveys_completed and total_earnings fields,
+    # we only need to annotate additional calculated fields
+    users = users.annotate(
+        # Total transaction count
+        transaction_count=Count('transactions')
+    ).order_by('-date_joined')
 
     # Pagination
     paginator = Paginator(users, 20)
     page_number = request.GET.get('page')
-    users = paginator.get_page(page_number)
+    users_page = paginator.get_page(page_number)
+
+    # Calculate summary statistics for the template
+    all_users = User.objects.filter(is_staff=False)
+
+    # Calculate statistics that match your template variables
+    total_users = all_users.count()
+    active_users = all_users.filter(is_active=True).count()
+    verified_users = 0
+
+    # Check if email_verified field exists
+    if hasattr(User, 'email_verified'):
+        verified_users = all_users.filter(email_verified=True).count()
+
+    # New users this month
+    current_month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    new_users_month = all_users.filter(date_joined__gte=current_month_start).count()
+
+    # Handle POST requests for user actions
+    if request.method == 'POST':
+        user_id = request.POST.get('user_id')
+        action = request.POST.get('action')
+
+        try:
+            target_user = User.objects.get(id=user_id)
+
+            if action == 'activate':
+                target_user.is_active = True
+                target_user.save()
+                messages.success(request, f'User {target_user.username} activated successfully.')
+
+            elif action == 'deactivate':
+                target_user.is_active = False
+                target_user.save()
+                messages.success(request, f'User {target_user.username} deactivated successfully.')
+
+            elif action == 'adjust_balance':
+                amount = Decimal(request.POST.get('amount', '0'))
+                reason = request.POST.get('reason')
+                notes = request.POST.get('notes', '')
+
+                # Update user balance
+                old_balance = target_user.balance or Decimal('0')
+                new_balance = old_balance + amount
+                target_user.balance = new_balance
+                target_user.save()
+
+                # Create transaction record
+                Transaction.objects.create(
+                    user=target_user,
+                    transaction_type='adjustment',
+                    amount=amount,
+                    status='completed',
+                    description=f'Admin balance adjustment - {reason}',
+                    balance_before=old_balance,
+                    balance_after=new_balance,
+                    notes=notes,
+                    processed_by=request.user,
+                    processed_at=timezone.now()
+                )
+
+                messages.success(
+                    request,
+                    f'Balance adjusted for {target_user.username}: '
+                    f'{"+" if amount >= 0 else ""}KSh {amount} '
+                    f'(New balance: KSh {new_balance})'
+                )
+
+        except User.DoesNotExist:
+            messages.error(request, 'User not found.')
+        except ValueError as e:
+            messages.error(request, f'Invalid amount: {str(e)}')
+        except Exception as e:
+            messages.error(request, f'Error: {str(e)}')
+
+        return redirect('custom_admin:users')
 
     context = {
-        'users': users,
+        'users': users_page,
         'search_query': search_query,
         'status_filter': status_filter,
+        'balance_range': balance_range,
+
+        # Summary statistics that match your template
+        'total_users': total_users,
+        'active_users': active_users,
+        'verified_users': verified_users,
+        'new_users_month': new_users_month,
+
+        # For pagination
+        'page_obj': users_page,
+        'is_paginated': users_page.has_other_pages(),
     }
 
     return render(request, 'admin/users.html', context)
+
 
 
 @admin_required
@@ -1844,7 +1957,6 @@ try:
 except ImportError:
     SettingsService = None
 
-
 @staff_member_required
 def financial_analytics_dashboard(request):
     """
@@ -1867,7 +1979,7 @@ def financial_analytics_dashboard(request):
 
     # FIXED: REVENUE STREAMS - Use actual transaction data
     registration_fees_revenue = Transaction.objects.filter(
-        transaction_type='registration_fee'
+        transaction_type='registration'  # CHANGED FROM 'registration_fee'
     ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
 
     # Service fees from positive adjustments and negative bonuses
@@ -1937,12 +2049,12 @@ def financial_analytics_dashboard(request):
 
     # FIXED: CURRENT MONTH PERFORMANCE - Use transaction data
     current_month_registration_revenue = Transaction.objects.filter(
-        transaction_type='registration_fee',
+        transaction_type='registration',  # CHANGED FROM 'registration_fee'
         created_at__gte=current_month_start
     ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
 
     current_month_paid_users = Transaction.objects.filter(
-        transaction_type='registration_fee',
+        transaction_type='registration',  # CHANGED FROM 'registration_fee'
         created_at__gte=current_month_start
     ).count()
 
@@ -2012,7 +2124,7 @@ def financial_analytics_dashboard(request):
     current_month_revenue = current_month_stats['total_revenue']
 
     last_month_registration_revenue = Transaction.objects.filter(
-        transaction_type='registration_fee',
+        transaction_type='registration',  # CHANGED FROM 'registration_fee'
         created_at__gte=last_month_start,
         created_at__lt=current_month_start
     ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
@@ -2048,7 +2160,7 @@ def financial_analytics_dashboard(request):
 
         # Daily registration revenue from actual transactions
         daily_registration_revenue = Transaction.objects.filter(
-            transaction_type='registration_fee',
+            transaction_type='registration',  # CHANGED FROM 'registration_fee'
             created_at__gte=day_start,
             created_at__lt=day_end
         ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
@@ -2106,13 +2218,13 @@ def financial_analytics_dashboard(request):
         month_end = (month_start + timedelta(days=32)).replace(day=1) - timedelta(days=1)
 
         month_registration_revenue = Transaction.objects.filter(
-            transaction_type='registration_fee',
+            transaction_type='registration',  # CHANGED FROM 'registration_fee'
             created_at__gte=month_start,
             created_at__lte=month_end
         ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
 
         month_registrations = Transaction.objects.filter(
-            transaction_type='registration_fee',
+            transaction_type='registration',  # CHANGED FROM 'registration_fee'
             created_at__gte=month_start,
             created_at__lte=month_end
         ).count()
@@ -2152,7 +2264,7 @@ def financial_analytics_dashboard(request):
         withdrawals=Count('id', filter=Q(transaction_type='withdrawal')),
         adjustments=Count('id', filter=Q(transaction_type='adjustment')),
         bonuses=Count('id', filter=Q(transaction_type='bonus')),
-        registration_fees=Count('id', filter=Q(transaction_type='registration_fee')),
+        registration_fees=Count('id', filter=Q(transaction_type='registration')),  # CHANGED FROM 'registration_fee'
         referral_commissions=Count('id', filter=Q(transaction_type='referral_commission'))
     ).order_by('day')
 
@@ -2287,7 +2399,7 @@ def financial_analytics_api(request):
         try:
             # FIXED: Revenue calculation using actual transactions (no hardcoded values)
             registration_revenue = Transaction.objects.filter(
-                transaction_type='registration_fee'
+                transaction_type='registration'  # CHANGED FROM 'registration_fee'
             ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
 
             # Service fees from positive adjustments and negative bonuses
@@ -2376,7 +2488,7 @@ def financial_analytics_api(request):
                 day=TruncDay('created_at')
             ).values('day').annotate(
                 # Revenue streams
-                registration_revenue=Sum('amount', filter=Q(transaction_type='registration_fee')),
+                registration_revenue=Sum('amount', filter=Q(transaction_type='registration')),  # CHANGED FROM 'registration_fee'
                 service_fees=Sum('amount', filter=Q(transaction_type='adjustment', amount__gt=0)) +
                              Sum('amount', filter=Q(transaction_type='bonus', amount__lt=0)),
 
@@ -2387,7 +2499,7 @@ def financial_analytics_api(request):
 
                 # Transaction counts
                 total_transactions=Count('id'),
-                registration_count=Count('id', filter=Q(transaction_type='registration_fee')),
+                registration_count=Count('id', filter=Q(transaction_type='registration')),  # CHANGED FROM 'registration_fee'
                 survey_count=Count('id', filter=Q(transaction_type='survey_payment')),
                 withdrawal_count=Count('id', filter=Q(transaction_type='withdrawal')),
                 commission_count=Count('id', filter=Q(transaction_type='referral_commission'))
@@ -2486,6 +2598,7 @@ def financial_analytics_api(request):
             }, status=500)
 
     return JsonResponse({'error': 'Invalid metric'}, status=400)
+
 
 # Add these imports to your views.py
 from django.shortcuts import redirect, get_object_or_404

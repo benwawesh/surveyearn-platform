@@ -168,6 +168,44 @@ def user_register(request):
                 user.phone_number = formatted_phone
                 user.save()
 
+                # CREATE REGISTRATION TRANSACTION RECORD FOR ADMIN DASHBOARD
+                try:
+                    from payments.models import Transaction
+                    transaction_record = Transaction.objects.create(
+                        user=user,
+                        transaction_type='registration',
+                        amount=amount,
+                        status='pending',
+                        description=f"Registration fee for {username}",
+                        reference_id=stk_response.get('checkout_request_id'),
+                        balance_before=Decimal('0.00'),  # New users start with 0 balance
+                        balance_after=Decimal('0.00'),   # Registration doesn't add to balance
+                        notes=f"STK Push initiated for {formatted_phone}"
+                    )
+                    logger.info(f"Registration transaction created: {transaction_record.id} for user: {username}")
+                except Exception as e:
+                    logger.error(f"Failed to create registration transaction for {username}: {e}")
+                    # Don't fail the registration if transaction creation fails
+                    import traceback
+                    traceback.print_exc()
+
+                # CREATE MPESA TRANSACTION RECORD FOR TRACKING
+                try:
+                    from payments.models import MPesaTransaction
+                    mpesa_transaction = MPesaTransaction.objects.create(
+                        user=user,
+                        transaction_type='stk_push',
+                        amount=amount,
+                        phone_number=formatted_phone,
+                        checkout_request_id=stk_response.get('checkout_request_id'),
+                        merchant_request_id=stk_response.get('merchant_request_id'),
+                        status='pending',
+                        api_response=stk_response
+                    )
+                    logger.info(f"M-Pesa transaction record created: {mpesa_transaction.id}")
+                except Exception as e:
+                    logger.error(f"Failed to create M-Pesa transaction record: {e}")
+
                 # Send welcome email
                 try:
                     EmailService.send_welcome_email(user)
@@ -194,8 +232,10 @@ def user_register(request):
 
                 return redirect('accounts:payment_confirmation', user_id=user.id)
             else:
+                # STK Push failed - clean up user record
                 user.delete()
                 error_msg = stk_response.get('error', 'Payment system temporarily unavailable')
+                logger.error(f"STK Push failed for {username}: {error_msg}")
                 messages.error(request, f"Payment initiation failed: {error_msg}")
 
         else:
@@ -213,7 +253,6 @@ def user_register(request):
         'commission_rate': int(settings_service.get_referral_commission_rate() * 100)
     }
     return render(request, 'accounts/register.html', context)
-
 
 def user_login(request):
     """User login view"""
@@ -592,7 +631,7 @@ def mpesa_callback(request):
             logger.warning(f"No user found for checkout request ID: {checkout_request_id}")
             return JsonResponse({'ResultCode': 0, 'ResultDesc': 'Accepted'})
 
-        # ADDED: Get settings service for dynamic configuration
+        # Get settings service for dynamic configuration
         settings_service = SettingsService()
 
         # Get channel layer for WebSocket communication
@@ -619,7 +658,7 @@ def mpesa_callback(request):
 
             # CRITICAL: Use database transaction for all updates
             with transaction.atomic():
-                # ADDED: Get dynamic settings for processing
+                # Get dynamic settings for processing
                 expected_fee = settings_service.get_registration_fee()
                 commission_rate = settings_service.get_referral_commission_rate()
                 auto_approve = settings_service.auto_approve_referral_commissions()
@@ -639,34 +678,77 @@ def mpesa_callback(request):
 
                 user.save()
 
-                logger.info(f"✅ User {user.username} payment confirmed via callback. Receipt: {receipt_number}")
+                logger.info(f"User {user.username} payment confirmed via callback. Receipt: {receipt_number}")
 
-                # ADDED: Create registration fee transaction to track revenue
+                # UPDATE EXISTING REGISTRATION TRANSACTION (FIXED)
                 registration_amount = Decimal(str(amount or user.registration_amount or expected_fee))
                 try:
                     from payments.models import Transaction
 
+                    # Find the pending registration transaction created during registration
+                    registration_transaction = Transaction.objects.get(
+                        user=user,
+                        transaction_type='registration',
+                        reference_id=checkout_request_id,
+                        status='pending'
+                    )
+
+                    # Update it to completed
+                    registration_transaction.status = 'completed'
+                    registration_transaction.processed_at = timezone.now()
+                    registration_transaction.notes += f' | M-Pesa Receipt: {receipt_number or "N/A"}'
+                    registration_transaction.save()
+
+                    logger.info(f"Registration transaction updated to completed: {registration_transaction.id}")
+
+                except Transaction.DoesNotExist:
+                    logger.warning(
+                        f"No pending registration transaction found for {user.username} with checkout ID: {checkout_request_id}")
+
+                    # Fallback: Create a new registration transaction if none exists
                     registration_transaction = Transaction.objects.create(
                         user=user,
-                        transaction_type='registration_fee',
+                        transaction_type='registration',
                         amount=registration_amount,
+                        status='completed',
                         description=f'Registration fee payment via M-Pesa. Receipt: {receipt_number or "N/A"}',
+                        reference_id=checkout_request_id,
+                        processed_at=timezone.now(),
+                        balance_before=Decimal('0.00'),
+                        balance_after=Decimal('0.00')
                     )
-                    logger.info(f"✅ Registration fee transaction created: KSh {registration_amount} from {user.username}")
+                    logger.info(f"New registration transaction created: {registration_transaction.id}")
 
                 except Exception as e:
-                    logger.error(f"❌ Error creating registration fee transaction for {user.username}: {str(e)}")
-                    # Don't fail the payment processing if transaction creation fails
+                    logger.error(f"Error updating registration transaction for {user.username}: {str(e)}")
+                    # Don't fail the payment processing if transaction update fails
+
+                # Update MPesa transaction record if exists
+                try:
+                    from payments.models import MPesaTransaction
+                    mpesa_transaction = MPesaTransaction.objects.get(
+                        checkout_request_id=checkout_request_id
+                    )
+                    mpesa_transaction.status = 'completed'
+                    mpesa_transaction.result_code = str(result_code)
+                    mpesa_transaction.mpesa_receipt_number = receipt_number
+                    mpesa_transaction.api_response = callback_data
+                    mpesa_transaction.save()
+                    logger.info(f"M-Pesa transaction updated: {mpesa_transaction.id}")
+                except MPesaTransaction.DoesNotExist:
+                    logger.info(f"No M-Pesa transaction record found for {checkout_request_id}")
+                except Exception as e:
+                    logger.error(f"Error updating M-Pesa transaction: {str(e)}")
 
                 # ENHANCED: Create referral commission with duplicate prevention
                 commission_created = False
                 if user.referred_by:
                     # Check if referrer is admin/staff - they shouldn't earn commissions
                     if user.referred_by.is_staff or user.referred_by.is_superuser:
-                        logger.info(f"ℹ️ Skipping commission for admin/staff referrer: {user.referred_by.username} (is_staff: {user.referred_by.is_staff}, is_superuser: {user.referred_by.is_superuser})")
+                        logger.info(f"Skipping commission for admin/staff referrer: {user.referred_by.username}")
                     else:
                         try:
-                            # ADDED: Check for existing commission first to prevent duplicates
+                            # Check for existing commission first to prevent duplicates
                             existing_commission = ReferralCommission.objects.filter(
                                 referrer=user.referred_by,
                                 referred_user=user,
@@ -674,7 +756,8 @@ def mpesa_callback(request):
                             ).first()
 
                             if existing_commission:
-                                logger.info(f"ℹ️ Commission already exists for {user.username} -> {user.referred_by.username}")
+                                logger.info(
+                                    f"Commission already exists for {user.username} -> {user.referred_by.username}")
                                 commission_created = True  # Mark as created for messaging purposes
                             else:
                                 # Import the service at the top of your file
@@ -684,27 +767,27 @@ def mpesa_callback(request):
 
                                 if commission:
                                     commission_created = True
-                                    logger.info(f"✅ Registration commission created: {commission.referrer.username} earns KSh {commission.commission_amount}")
+                                    logger.info(
+                                        f"Registration commission created: {commission.referrer.username} earns KSh {commission.commission_amount}")
 
-                                    # UPDATED: Use dynamic auto-approval setting
+                                    # Use dynamic auto-approval setting
                                     if auto_approve:
                                         result = ReferralService.process_pending_commissions(
                                             referrer_user=user.referred_by,
                                             auto_approve=True
                                         )
-                                        logger.info(f"✅ Auto-approved commission: KSh {result['total_amount']} to {user.referred_by.username}")
+                                        logger.info(
+                                            f"Auto-approved commission: KSh {result['total_amount']} to {user.referred_by.username}")
                                 else:
-                                    logger.error(f"❌ ReferralService.create_registration_commission returned None for {user.username}")
-                                    logger.error(f"   This suggests an issue in the ReferralService itself")
+                                    logger.error(
+                                        f"ReferralService.create_registration_commission returned None for {user.username}")
 
                         except Exception as e:
-                            logger.error(f"❌ Error creating referral commission for {user.username}: {str(e)}")
-                            # Log full traceback for debugging
+                            logger.error(f"Error creating referral commission for {user.username}: {str(e)}")
                             import traceback
                             logger.error(traceback.format_exc())
-                            # Don't fail the payment processing if commission creation fails
                 else:
-                    logger.info(f"ℹ️ User {user.username} has no referrer - no commission to create")
+                    logger.info(f"User {user.username} has no referrer - no commission to create")
 
             # Send payment confirmation email
             try:
@@ -719,9 +802,9 @@ def mpesa_callback(request):
 
             # Send WebSocket notification for successful payment
             if channel_layer:
-                # FIXED: Only show commission message for non-admin/staff referrers
                 success_message = 'Payment successful! Your account is now active.'
-                if user.referred_by and not (user.referred_by.is_staff or user.referred_by.is_superuser) and commission_created:
+                if user.referred_by and not (
+                        user.referred_by.is_staff or user.referred_by.is_superuser) and commission_created:
                     payment_amount = Decimal(str(amount or user.registration_amount or expected_fee))
                     commission_amount = payment_amount * commission_rate
                     success_message += f' Your referrer {user.referred_by.get_full_name() or user.referred_by.username} will earn KSh {commission_amount}.'
@@ -748,7 +831,25 @@ def mpesa_callback(request):
 
         else:
             # Payment failed
-            logger.info(f"❌ Payment failed for user {user.username}. Result code: {result_code}")
+            logger.info(f"Payment failed for user {user.username}. Result code: {result_code}")
+
+            # Update transaction status to failed
+            try:
+                from payments.models import Transaction
+                registration_transaction = Transaction.objects.get(
+                    user=user,
+                    transaction_type='registration',
+                    reference_id=checkout_request_id,
+                    status='pending'
+                )
+                registration_transaction.status = 'failed'
+                registration_transaction.notes += f' | Payment failed: Code {result_code}'
+                registration_transaction.save()
+                logger.info(f"Registration transaction marked as failed: {registration_transaction.id}")
+            except Transaction.DoesNotExist:
+                logger.warning(f"No pending transaction found to mark as failed for {user.username}")
+            except Exception as e:
+                logger.error(f"Error marking transaction as failed: {str(e)}")
 
             # Send WebSocket notification for failed payment
             if channel_layer:
@@ -785,10 +886,10 @@ def mpesa_callback(request):
 
     except Exception as e:
         logger.error(f"Error processing M-Pesa callback: {e}")
-        # Log full traceback for debugging
         import traceback
         logger.error(traceback.format_exc())
         return JsonResponse({'ResultCode': 1, 'ResultDesc': 'Processing error'})
+
 
 @csrf_exempt
 @require_http_methods(["POST"])

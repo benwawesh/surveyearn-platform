@@ -5,6 +5,7 @@ import base64
 from datetime import datetime
 from django.conf import settings
 from django.utils import timezone
+from requests.auth import HTTPBasicAuth 
 import json
 import logging
 
@@ -15,12 +16,20 @@ class MPesaService:
     """Service class for M-Pesa API integration"""
 
     def __init__(self):
-        # M-Pesa API Configuration
+        # Primary M-Pesa API Configuration from settings
         self.consumer_key = getattr(settings, 'MPESA_CONSUMER_KEY', '')
         self.consumer_secret = getattr(settings, 'MPESA_CONSUMER_SECRET', '')
-        self.business_shortcode = getattr(settings, 'MPESA_BUSINESS_SHORTCODE', '')
-        self.passkey = getattr(settings, 'MPESA_PASSKEY', '')
-        self.environment = getattr(settings, 'MPESA_ENVIRONMENT', 'sandbox')  # 'sandbox' or 'production'
+
+        # If credentials are empty or invalid, use fallback sandbox credentials
+        if not self.consumer_key or not self.consumer_secret:
+            logger.warning("Using fallback M-Pesa sandbox credentials")
+            self.consumer_key = 'dpGKpGrNaNdB0nYdJqUOmwU6ixJWJQZH'
+            self.consumer_secret = 'tMQlSFJVD2VPRvkO'
+
+        self.business_shortcode = getattr(settings, 'MPESA_SHORTCODE', '174379')
+        self.passkey = getattr(settings, 'MPESA_PASSKEY',
+                               'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919')
+        self.environment = getattr(settings, 'MPESA_ENVIRONMENT', 'sandbox')
 
         # API URLs
         if self.environment == 'production':
@@ -34,29 +43,67 @@ class MPesaService:
         self.stk_push_url = f'{self.base_url}/mpesa/stkpush/v1/processrequest'
         self.query_url = f'{self.base_url}/mpesa/b2c/v1/paymentrequest'
 
+    from requests.auth import HTTPBasicAuth
+
     def get_access_token(self):
-        """Get M-Pesa API access token"""
+        """Get M-Pesa API access token with enhanced debugging"""
+
+        # Mock mode for development when no shortcode is available
+        if getattr(settings, 'MPESA_MOCK_MODE', False):
+            logger.info("M-Pesa Mock Mode: Returning fake access token")
+            return "mock_access_token_for_development"
+
         try:
-            # Create basic auth header
-            credentials = f"{self.consumer_key}:{self.consumer_secret}"
-            encoded_credentials = base64.b64encode(credentials.encode()).decode()
+            # Debug: Check if credentials are set
+            logger.info(f"Consumer Key: {'SET' if self.consumer_key else 'NOT SET'}")
+            logger.info(f"Consumer Secret: {'SET' if self.consumer_secret else 'NOT SET'}")
+            logger.info(f"RAW Consumer Key: {self.consumer_key!r}")
+            logger.info(f"RAW Consumer Secret: {self.consumer_secret!r}")
 
-            headers = {
-                'Authorization': f'Basic {encoded_credentials}',
-                'Content-Type': 'application/json'
-            }
+            logger.info(f"Environment: {self.environment}")
+            logger.info(f"Auth URL: {self.auth_url}")
 
-            response = requests.get(self.auth_url, headers=headers)
+            if not self.consumer_key or not self.consumer_secret:
+                logger.error("M-Pesa credentials are missing!")
+                return None
+
+            # ✅ Use HTTPBasicAuth instead of manual base64 encoding
+            logger.info(f"Requesting M-Pesa access token from: {self.auth_url}")
+            logger.info(f"Using credentials: {self.consumer_key[:6]}...")
+
+            response = requests.get(
+                self.auth_url,
+                auth=HTTPBasicAuth(self.consumer_key, self.consumer_secret),
+                timeout=30
+            )
+
+            logger.info(f"M-Pesa response status: {response.status_code}")
+            logger.info(f"M-Pesa response headers: {dict(response.headers)}")
 
             if response.status_code == 200:
                 result = response.json()
+                logger.info(f"Access token received: {result.get('access_token', 'None')[:20]}...")
                 return result.get('access_token')
             else:
-                logger.error(f"Failed to get M-Pesa access token: {response.text}")
+                logger.error(f"Failed to get M-Pesa access token. Status: {response.status_code}")
+                logger.error(f"Response body: {response.text}")
+
+                # Try to parse error details
+                try:
+                    error_data = response.json()
+                    logger.error(f"Error details: {error_data}")
+                except:
+                    pass
+
                 return None
 
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Network error getting M-Pesa access token: {str(e)}")
+            return None
         except Exception as e:
-            logger.error(f"Error getting M-Pesa access token: {str(e)}")
+            logger.error(f"Unexpected error getting M-Pesa access token: {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return None
 
     def generate_password(self, timestamp=None):
@@ -123,11 +170,19 @@ class MPesaService:
     def initiate_stk_push(self, phone_number, amount, reference, description="Survey payment"):
         """Initiate STK Push for payments to the platform"""
 
-        # Make sure this block is commented out:
-        # if settings.DEBUG:
-        #     print(f"DEVELOPMENT MODE: Auto-approving M-Pesa payment")
-        #     return {...}
+        # Mock mode for development when no shortcode is available
+        if getattr(settings, 'MPESA_MOCK_MODE', False):
+            logger.info(f"M-Pesa Mock Mode: Simulating STK Push for {phone_number}, amount {amount}")
 
+            # Clean phone number for logging
+            formatted_phone = self.format_phone_number(phone_number)
+
+            return {
+                'success': True,
+                'checkout_request_id': f'mock_checkout_{reference}_{int(amount)}',
+                'merchant_request_id': f'mock_merchant_{reference}',
+                'response_description': f'Mock STK Push initiated for {formatted_phone} - KSh {amount}'
+            }
 
         # Real M-Pesa integration
         access_token = self.get_access_token()
@@ -160,11 +215,9 @@ class MPesaService:
             "TransactionDesc": description
         }
 
-
         try:
             response = requests.post(self.stk_push_url, json=payload, headers=headers)
             result = response.json()
-
 
             if response.status_code == 200 and result.get('ResponseCode') == '0':
                 return {

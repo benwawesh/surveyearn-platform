@@ -1,49 +1,39 @@
 # Python
 __pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-venv/
-survey_env/
-ENV/
-env.bak/
-venv.bak/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
 
 # Django
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
+/staticfiles/
 /media/
-/static/
+/db.sqlite3
+
+# Environment & Secrets
 .env
-settings_local.py
+*.key
+*.pem
+
+# Docker
+*.log
+*.pid
+*.sock
+*.tmp
+.docker/
+*.tar
+*.gz
+
+# Virtual env
+venv/
+.env/
+.venv/
+env/
 
 # IDE
 .vscode/
 .idea/
-*.swp
-*.swo
-*~
 
 # OS
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
-
-# Temporary fix scripts (exclude from repo)
-fix_*.py
-
-# Docker
-.dockerignore
-
-# Sensitive files
-*.pem
-*.key
-.env.*

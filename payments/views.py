@@ -25,17 +25,16 @@ logger = logging.getLogger(__name__)
 @require_POST
 def mpesa_callback(request):
     """Handle M-Pesa STK Push callbacks"""
-
     try:
         callback_data = json.loads(request.body)
-
-        # Extract callback data
         stk_callback = callback_data.get('Body', {}).get('stkCallback', {})
         checkout_request_id = stk_callback.get('CheckoutRequestID')
         result_code = stk_callback.get('ResultCode')
         result_desc = stk_callback.get('ResultDesc')
 
-        # Find the transaction
+        logger.info(f"M-Pesa callback received: CheckoutRequestID={checkout_request_id}, ResultCode={result_code}")
+
+        # Find the MPesaTransaction
         try:
             mpesa_transaction = MPesaTransaction.objects.get(
                 checkout_request_id=checkout_request_id
@@ -44,7 +43,7 @@ def mpesa_callback(request):
             logger.error(f"M-Pesa callback: Transaction not found for checkout_request_id: {checkout_request_id}")
             return HttpResponse("OK")
 
-        # Update transaction status
+        # Update M-Pesa transaction
         mpesa_transaction.result_code = str(result_code)
         mpesa_transaction.result_desc = result_desc
         mpesa_transaction.api_response = callback_data
@@ -54,27 +53,137 @@ def mpesa_callback(request):
 
             # Extract transaction details
             callback_metadata = stk_callback.get('CallbackMetadata', {}).get('Item', [])
+            mpesa_receipt_number = None
+
             for item in callback_metadata:
                 name = item.get('Name')
                 value = item.get('Value')
 
                 if name == 'MpesaReceiptNumber':
+                    mpesa_receipt_number = value
                     mpesa_transaction.mpesa_receipt_number = value
                 elif name == 'TransactionDate':
-                    # Convert M-Pesa timestamp to datetime
                     from datetime import datetime
                     transaction_date = datetime.strptime(str(value), '%Y%m%d%H%M%S')
                     mpesa_transaction.transaction_date = timezone.make_aware(transaction_date)
 
+            # **UPDATE THE EXISTING TRANSACTION RECORD (DON'T CREATE NEW ONE)**
+            try:
+                # Find the existing Transaction record by checkout_request_id
+                transaction_record = Transaction.objects.get(
+                    reference_id=checkout_request_id,
+                    transaction_type='registration',
+                    user=mpesa_transaction.user,
+                    status='pending'
+                )
+
+                # Update the existing transaction to completed
+                transaction_record.status = 'completed'
+                transaction_record.processed_at = timezone.now()
+                transaction_record.description = f'Registration payment completed via M-Pesa - Receipt: {mpesa_receipt_number}'
+                transaction_record.notes = f"Payment confirmed on {timezone.now()}"
+                transaction_record.save()
+
+                logger.info(
+                    f"Updated existing transaction {transaction_record.id} to completed for user {mpesa_transaction.user.username}")
+
+            except Transaction.DoesNotExist:
+                # Fallback: Create new transaction if somehow the original wasn't created
+                transaction_record = Transaction.objects.create(
+                    user=mpesa_transaction.user,
+                    transaction_type='registration',
+                    amount=mpesa_transaction.amount,
+                    status='completed',
+                    description=f'Registration payment via M-Pesa - Receipt: {mpesa_receipt_number}',
+                    reference_id=mpesa_receipt_number or checkout_request_id,
+                    processed_at=timezone.now(),
+                    balance_before=Decimal('0.00'),
+                    balance_after=Decimal('0.00'),
+                    notes='Transaction record created from callback (missing original)'
+                )
+                logger.warning(
+                    f"Created new transaction record from callback for user {mpesa_transaction.user.username}")
+
+            except Transaction.MultipleObjectsReturned:
+                # Handle case where multiple pending transactions exist
+                transactions = Transaction.objects.filter(
+                    reference_id=checkout_request_id,
+                    transaction_type='registration',
+                    user=mpesa_transaction.user,
+                    status='pending'
+                )
+                # Update the most recent one
+                latest_transaction = transactions.order_by('-created_at').first()
+                latest_transaction.status = 'completed'
+                latest_transaction.processed_at = timezone.now()
+                latest_transaction.description = f'Registration payment completed via M-Pesa - Receipt: {mpesa_receipt_number}'
+                latest_transaction.save()
+                logger.info(f"Updated latest transaction {latest_transaction.id} to completed (multiple found)")
+
+            # Activate user account
+            user = mpesa_transaction.user
+            user.registration_paid = True
+            user.is_active = True
+            user.save()
+
+            # Process referral commission (if applicable)
+            try:
+                from core.services import ReferralService
+                ReferralService.process_registration_commission(user)
+                logger.info(f"Referral commission processed for user {user.username}")
+            except Exception as e:
+                logger.error(f"Error processing referral commission for {user.username}: {e}")
+
+            logger.info(f"Registration payment completed for user {user.username}, receipt: {mpesa_receipt_number}")
+
         else:  # Failed
             mpesa_transaction.status = 'failed'
 
+            # Update the existing Transaction record to failed
+            try:
+                transaction_record = Transaction.objects.get(
+                    reference_id=checkout_request_id,
+                    transaction_type='registration',
+                    user=mpesa_transaction.user,
+                    status='pending'
+                )
+                transaction_record.status = 'failed'
+                transaction_record.description = f'Registration payment failed - {result_desc}'
+                transaction_record.notes = f"Payment failed: {result_desc}"
+                transaction_record.save()
+                logger.info(f"Marked transaction {transaction_record.id} as failed")
+            except Transaction.DoesNotExist:
+                logger.warning(
+                    f"No pending transaction found to mark as failed for checkout_request_id: {checkout_request_id}")
+
+            logger.error(f"M-Pesa payment failed for user {mpesa_transaction.user.username}: {result_desc}")
+
         mpesa_transaction.save()
-        logger.info(f"M-Pesa callback processed: {checkout_request_id}, status: {mpesa_transaction.status}")
+
+        # Send WebSocket notification if implemented
+        try:
+            from channels.layers import get_channel_layer
+            from asgiref.sync import async_to_sync
+
+            channel_layer = get_channel_layer()
+            if channel_layer:
+                async_to_sync(channel_layer.group_send)(
+                    f'user_{mpesa_transaction.user.id}',
+                    {
+                        'type': 'payment_status_update',
+                        'status': 'completed' if result_code == 0 else 'failed',
+                        'message': 'Payment completed successfully' if result_code == 0 else f'Payment failed: {result_desc}'
+                    }
+                )
+        except Exception as e:
+            logger.error(f"WebSocket notification failed: {e}")
+
         return HttpResponse("OK")
 
     except Exception as e:
         logger.error(f"M-Pesa callback error: {str(e)}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
         return HttpResponse("ERROR", status=400)
 
 

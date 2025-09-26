@@ -10,8 +10,7 @@ class AccountsConfig(AppConfig):
     def ready(self):
         """
         Called when the app is ready.
-        Import signal handlers here if needed.
+        Import signal handlers here.
         """
-        # Import signals if you have any
-        # from . import signals
-        pass
+        # Import signals to enable automatic user field updates
+        from . import signals

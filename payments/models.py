@@ -13,6 +13,7 @@ class Transaction(models.Model):
     """Track all financial transactions in the platform"""
 
     TRANSACTION_TYPES = [
+        ('registration', 'Registration Payment'),
         ('survey_payment', 'Survey Payment'),
         ('withdrawal', 'Withdrawal'),
         ('adjustment', 'Admin Adjustment'),

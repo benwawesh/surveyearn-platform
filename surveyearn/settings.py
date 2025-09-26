@@ -13,7 +13,14 @@ if env_file.exists():
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-development-key-change-in-production')
 DEBUG = True
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+# Update this line in settings.py
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,3b9b07f8bc1e.ngrok-free.app').split(',')
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://3b9b07f8bc1e.ngrok-free.app",
+    "https://your-production-domain.com"
+]
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -37,6 +44,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'accounts.middleware.referral_middleware.ReferralTrackingMiddleware',  # ADD THIS LINE
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -130,16 +138,29 @@ LOGIN_URL = 'accounts:login'
 LOGIN_REDIRECT_URL = 'surveys:dashboard'
 LOGOUT_REDIRECT_URL = '/'
 
-# Email - Console backend for development
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# Email - SendGrid SMTP Configuration
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.sendgrid.net'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'apikey'
+EMAIL_HOST_PASSWORD = os.getenv('SENDGRID_API_KEY')
 DEFAULT_FROM_EMAIL = 'noreply@surveyearn.com'
-
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
+EMAIL_TIMEOUT = 60
 # M-Pesa settings
 MPESA_CONSUMER_KEY = os.getenv('MPESA_CONSUMER_KEY', '')
 MPESA_CONSUMER_SECRET = os.getenv('MPESA_CONSUMER_SECRET', '')
 MPESA_SHORTCODE = os.getenv('MPESA_SHORTCODE', '')
 MPESA_PASSKEY = os.getenv('MPESA_PASSKEY', '')
 MPESA_ENVIRONMENT = os.getenv('MPESA_ENVIRONMENT', 'sandbox')
+# M-Pesa Mock Mode for development
+MPESA_MOCK_MODE = os.getenv('MPESA_MOCK_MODE', 'False').lower() == 'true'
+
+
+# In settings.py, add after the M-Pesa settings:
+SITE_URL = os.getenv('SITE_URL', 'https://3b9b07f8bc1e.ngrok-free.app')
+
 
 # Messages
 from django.contrib.messages import constants as messages
@@ -167,3 +188,4 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 
 # Create logs directory
 os.makedirs(BASE_DIR / 'logs', exist_ok=True)
+
